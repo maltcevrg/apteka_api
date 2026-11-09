@@ -1,0 +1,24 @@
+<?php
+
+namespace Solt\Bonus\Http\Resources;
+
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class PharmacyResource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array|\Illuminate\Contracts\Support\Arrayable|\JsonSerializable
+     */
+    public function toArray($request)
+    {
+        return [
+            'id'            => $this->id,
+            'legal_entity'  => new LegalEntityResource( $this->whenLoaded('legal_entity') ),
+            'number'        => $this->number,
+            'name'          => $this->name
+        ];
+    }
+}
