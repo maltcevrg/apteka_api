@@ -9,7 +9,7 @@ use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
 use Solt\Bonus\Models\Card;
 
-class UpdateCardTest extends TestCase
+class UpdateTest extends TestCase
 {
 
     use RefreshDatabase;

@@ -30,13 +30,13 @@ API выделено в отдельный Laravel-пакет `packages/Solt/Bon
 
 ## Аутентификация
 
-Веб-часть приложения (Inertia.js + Breeze) использует классическую сессионную аутентификацию. API-маршруты защищены middleware `client` (`\Laravel\Passport\Http\Middleware\CheckClientCredentials`), поэтому каждый запрос к API должен содержать заголовок:
+Веб-части у приложения нет. API-маршруты защищены middleware `client` (`\Laravel\Passport\Http\Middleware\CheckToken`), поэтому каждый запрос к API должен содержать заголовок:
 
 ```
 Authorization: Bearer <oauth_access_token>
 ```
 
-Токен получается через OAuth 2.0 Client Credentials grant Laravel Passport.
+Токен получается через OAuth 2.0 Client Credentials grant Laravel Passport (`POST /oauth/token`). Остальные маршруты Passport (авторизация пользователей, device flow) отключены: у приложения нет пользователей и страниц.
 
 ## Статус-коды ответов (особенность реализации)
 
@@ -47,12 +47,10 @@ Authorization: Bearer <oauth_access_token>
 - `202 Accepted` — ресурс не найден или операция не выполнена (например, «Карта не найдена», «Нулевой баланс»).
 - `204 No Content` — успешное удаление ресурса.
 
-Все ответы возвращаются в формате JSON.
+Все ответы возвращаются в формате JSON. Ошибки тоже, даже если клиент не прислал заголовок `Accept: application/json`: `401` — нет токена или он недействителен, `404` — нет такого адреса, `405` — метод не поддерживается, `422` — данные не прошли валидацию (в поле `errors` — ошибки по полям), `500` — внутренняя ошибка.
 
 ## Технологии
 
-- **Laravel 9** — маршрутизация, контейнер DI, миграции, ORM Eloquent.
-- **Laravel Passport** — OAuth 2.0 сервер для защиты API.
-- **Inertia.js + Vue 3** — монолитный веб-интерфейс без отдельного SPA-бэкенда.
-- **Tailwind CSS** — оформление веб-части.
-- **PHPUnit** — функциональные и модульные тесты.
+- **Laravel 13** (PHP 8.3 или новее) — маршрутизация, контейнер DI, миграции, ORM Eloquent.
+- **Laravel Passport 13** — OAuth 2.0 сервер для защиты API.
+- **PHPUnit 12** — функциональные и модульные тесты.

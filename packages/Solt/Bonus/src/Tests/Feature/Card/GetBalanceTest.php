@@ -49,7 +49,7 @@ class GetBalanceTest extends TestCase
 
         $bonus_balance_item = BonusBalance::factory()->create();
 
-        $this->getJson( route('api.bonus.balance.get', '') )
+        $this->getJson('/api/v1/bonus/balance/')
             ->assertStatus(404);
     }
 

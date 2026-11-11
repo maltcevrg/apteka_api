@@ -47,4 +47,20 @@ class Handler extends ExceptionHandler
             //
         });
     }
+
+    /**
+     * Determine if the exception handler response should be JSON.
+     *
+     * The application is an API without web pages, so errors on the API and
+     * OAuth addresses are returned as JSON even when the client did not send
+     * the "Accept: application/json" header.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Throwable  $e
+     * @return bool
+     */
+    protected function shouldReturnJson($request, Throwable $e)
+    {
+        return $request->is('api/*', 'oauth/*') || parent::shouldReturnJson($request, $e);
+    }
 }
