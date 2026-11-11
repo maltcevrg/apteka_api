@@ -2,7 +2,7 @@
 
 ## Инструмент
 
-Тесты написаны на **PHPUnit 9**. Конфигурация — `phpunit.xml` в корне репозитория.
+Тесты написаны на **PHPUnit 12**. Конфигурация — `phpunit.xml` в корне репозитория.
 
 ## Запуск всех тестов
 
@@ -18,6 +18,8 @@ vendor/bin/phpunit
 packages/Solt/Bonus/src/Tests/
 ├── TestCase.php
 ├── Feature/
+│   ├── Api/
+│   │   └── ErrorFormatTest.php
 │   ├── Bonus/
 │   │   └── BonusTest.php
 │   ├── Card/

@@ -11,10 +11,10 @@
 
 ## Что внутри
 
-- PHP 8 + Laravel 9
+- PHP 8.3 или новее + Laravel 13
 - База данных MySQL
 - API защищено токенами (Laravel Passport)
-- Есть веб-часть на Vue.js, но основное — API
+- Веб-страниц нет, только API
 
 ## Быстрый старт
 
@@ -33,12 +33,20 @@
    ```bash
    php artisan migrate
    ```
-7. Запустите сервер:
+7. Создайте ключи для токенов:
+   ```bash
+   php artisan passport:keys
+   ```
+8. Создайте клиента API. Команда покажет `Client ID` и `Client Secret`. Секрет показывается один раз, сохраните его:
+   ```bash
+   php artisan passport:client --client
+   ```
+9. Запустите сервер:
    ```bash
    php artisan serve
    ```
 
-API будет доступно по адресу `http://localhost:8000/api/v1`.
+API будет доступно по адресу `http://localhost:8000/api/v1`. Как получить токен и проверить работу, написано в разделе [Как запустить](docs/02-kak-zapustit.md).
 
 ## Все разделы документации
 
