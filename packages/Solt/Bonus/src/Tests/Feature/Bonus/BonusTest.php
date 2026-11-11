@@ -6,7 +6,7 @@ use Tests\TestCase;
 use Laravel\Passport\Passport;
 use Laravel\Passport\Client;
 
-class Bonus extends TestCase
+class BonusTest extends TestCase
 {
 
     public function setUp() : void

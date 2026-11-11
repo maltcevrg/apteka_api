@@ -7,6 +7,7 @@ use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvi
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Laravel\Passport\Http\Controllers\AccessTokenController;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -35,6 +36,11 @@ class RouteServiceProvider extends ServiceProvider
 
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
+
+            // Token issuance for API clients, defined the same way as in Passport's own routes file.
+            Route::post('oauth/token', [AccessTokenController::class, 'issueToken'])
+                ->middleware('throttle')
+                ->name('passport.token');
         });
     }
 
