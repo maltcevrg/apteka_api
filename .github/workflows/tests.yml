@@ -56,3 +56,9 @@ jobs:
             tail -n 150 phpunit-output.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          # Аннотации видны через API, в отличие от summary (лимит ~4 КБ на сообщение)
+          grep -vE '^\s*$' phpunit-output.txt | tail -n 400 | split -l 40 - chunk_
+          for f in chunk_*; do
+            msg=$(sed ':a;N;$!ba;s/\n/%0A/g' "$f" | cut -c1-3900)
+            echo "::notice title=PHPUnit ${f}::${msg}"
+          done
