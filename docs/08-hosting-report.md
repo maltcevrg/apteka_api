@@ -542,6 +542,8 @@ VPS у того же провайдера стоит от 314 ₽ в месяц.
 
 ### 8.1. Правки в коде
 
+**Выполнено 12.11.2026:** добавлена миграция `2026_11_12_000001_add_indexes_to_card_operations_and_cards.php` с индексами, из `CancelRequest` убрано правило `exists:card_operations,document_type`. Описание ниже сохранено для истории.
+
 Без них расчёт неверен (разделы 6.4 и 6.5).
 
 1. Добавить индексы. Новая миграция в `packages/Solt/Bonus/src/Database/Migrations/`:

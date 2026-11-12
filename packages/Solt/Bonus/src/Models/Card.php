@@ -54,10 +54,15 @@ class Card extends Model
      * Получение элемента по штрих-коду
      *
      * @param String $short_code
+     * @param Bool $lock  Заблокировать строку карты до конца транзакции (SELECT ... FOR UPDATE)
      * @return Card
      */
-    static function findByShortCode( String $short_code ){
-        return self::where('short_code', $short_code)->whereNull('deleted_at')->where('status', self::$avaliable_status)->first();
+    static function findByShortCode( String $short_code, Bool $lock = false ){
+        $query = self::where('short_code', $short_code)->whereNull('deleted_at')->where('status', self::$avaliable_status);
+        if( $lock ){
+            $query->lockForUpdate();
+        }
+        return $query->first();
     }
 
     /**
@@ -80,7 +85,9 @@ class Card extends Model
      * @return Float
      */
     function getBalance(){
-        return round($this->balances->sum('sum'), 2);
+        // Свежий запрос, а не кэшированное отношение: внутри транзакции
+        // баланс должен отражать текущее состояние базы.
+        return round((float) $this->balances()->sum('sum'), 2);
     }
 
     /**

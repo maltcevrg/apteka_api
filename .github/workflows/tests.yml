@@ -1,0 +1,64 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: aptekaapitesting
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql, mbstring, openssl, sodium, dom, fileinfo, ctype, tokenizer
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.testing.example .env.testing
+          cp .env.testing .env
+          php artisan key:generate --env=testing
+          php artisan passport:keys --force
+
+      - name: Run tests
+        run: |
+          set -o pipefail
+          vendor/bin/phpunit 2>&1 | tee phpunit-output.txt
+
+      - name: Publish test output
+        if: always()
+        run: |
+          {
+            echo '### PHPUnit'
+            echo '```'
+            tail -n 150 phpunit-output.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Аннотации видны через API, в отличие от summary (лимит ~4 КБ на сообщение)
+          grep -vE '^\s*$' phpunit-output.txt | tail -n 400 | split -l 40 - chunk_
+          for f in chunk_*; do
+            msg=$(sed ':a;N;$!ba;s/\n/%0A/g' "$f" | cut -c1-3900)
+            echo "::notice title=PHPUnit ${f}::${msg}"
+          done

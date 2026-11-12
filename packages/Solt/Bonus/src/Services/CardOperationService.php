@@ -4,7 +4,6 @@ namespace Solt\Bonus\Services;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\DB;
-use PhpParser\Node\Expr\Cast\Bool_;
 use Solt\Bonus\Http\Resources\CardOperationResource;
 use Solt\Bonus\Http\Resources\CardResource;
 use Solt\Bonus\Interfaces\Card\CardInterface;
@@ -38,13 +37,14 @@ class CardOperationService implements CardOperationInterface{
      */
     function store(array $data): JsonResource|Bool
     {
-        $card = Card::findByShortCode( $data['short_code'] );
-        if( $card->getBalance() + $data['amount'] < 0 ){
-            return false;
-        }
+        return DB::transaction(function () use ($data) {
+            // Блокируем строку карты: все операции по одной карте выполняются
+            // последовательно, и баланс проверяется уже под блокировкой.
+            $card = Card::findByShortCode( $data['short_code'], true );
+            if( $card->getBalance() + $data['amount'] < 0 ){
+                return false;
+            }
 
-        DB::beginTransaction();
-        try {
             $card_operation = new CardOperation( $data );
             $card_operation->card()->associate( $card ) ;
             $card_operation->legal_entity()->associate( LegalEntity::findByInn( $data['inn'] )) ;
@@ -53,39 +53,34 @@ class CardOperationService implements CardOperationInterface{
 
             $this->bonus_balance_service = new BonusBalanceService( $card_operation->card, $card_operation->legal_entity );
             $this->bonus_balance_service->changeBalance( $card_operation->amount );
-            DB::commit();
-        } catch (\Throwable $th) {
-            DB::rollBack();
-        }
 
-        return new CardOperationResource( $card_operation );
+            return new CardOperationResource( $card_operation );
+        });
     }
 
     /**
      * @inheritcod
      */
     function delete( String $short_code, String $document_number, String $document_type ) : Bool {
-        $card_operation = CardOperation::findByRequisites( $short_code, $document_number, $document_type );
-        if( empty( $card_operation ) ){
-            return false;
-        }
-        $card = Card::findByShortCode( $short_code );
-        if( $card->getBalance() - $card_operation->amount < 0 ){
-            return false;
-        }
+        return DB::transaction(function () use ($short_code, $document_number, $document_type) {
+            $card = Card::findByShortCode( $short_code, true );
+            if( empty( $card ) ){
+                return false;
+            }
+            $card_operation = CardOperation::findByRequisites( $short_code, $document_number, $document_type );
+            if( empty( $card_operation ) ){
+                return false;
+            }
+            if( $card->getBalance() - $card_operation->amount < 0 ){
+                return false;
+            }
 
-        DB::beginTransaction();
-        try {
             $this->bonus_balance_service = new BonusBalanceService( $card_operation->card, $card_operation->legal_entity );
             $this->bonus_balance_service->changeBalance( -1*$card_operation->amount );
 
             $card_operation->delete();
-            DB::commit();
             return true;
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            return false;
-        }
+        });
     }
 
     /**
@@ -93,17 +88,16 @@ class CardOperationService implements CardOperationInterface{
      */
     function move(String $short_code_from, String $short_code_to, String $document_number, String $document_date, String $document_type): Bool
     {
-        $card_from = Card::findByShortCode( $short_code_from );
-        $card_to = Card::findByShortCode( $short_code_to );
+        return DB::transaction(function () use ($short_code_from, $short_code_to, $document_number, $document_date, $document_type) {
+            $card_from = Card::findByShortCode( $short_code_from, true );
+            $card_to = Card::findByShortCode( $short_code_to, true );
 
-        $card_from_balance = $card_from->getBalance();
+            $card_from_balance = $card_from->getBalance();
 
-        if( $card_from_balance == 0 ){
-            return false;
-        }
+            if( $card_from_balance == 0 ){
+                return false;
+            }
 
-        DB::beginTransaction();
-        try {
             $card_operation_to = new CardOperation([
                 'action'            => CardOperation::$move_action,
                 'document_number'   => $document_number,
@@ -124,18 +118,13 @@ class CardOperationService implements CardOperationInterface{
             $card_operation_from->card()->associate( $card_from ) ;
             $card_operation_from->save();
 
-
             foreach( $card_from->balances as $card_from_bonus_balance ){
                 $card_to_bonus_balance_service = new BonusBalanceService( $card_to, $card_from_bonus_balance->legal_entity );
                 $card_to_bonus_balance_service->changeBalance( $card_from_bonus_balance->sum );
                 $card_from_bonus_balance_service = new BonusBalanceService( $card_from, $card_from_bonus_balance->legal_entity );
                 $card_from_bonus_balance_service->changeBalance( -1*$card_from_bonus_balance->sum );
             }
-            DB::commit();
             return true;
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            return false;
-        }
+        });
     }
 }
