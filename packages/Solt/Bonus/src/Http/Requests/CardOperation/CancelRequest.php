@@ -18,7 +18,7 @@ class CancelRequest extends FormRequest{
             'short_code'        => ['required', 'string', 'exists:cards,short_code', 'min:9', 'max:13'],
             'document_date'     => ['required', 'date'],
             'document_number'   => ['required', 'string', 'max:12', 'exists:card_operations,document_number'],
-            'document_type'     => ['required', 'string', 'max:40', 'exists:card_operations,document_type'],
+            'document_type'     => ['required', 'string', 'max:40'],
         ];
     }
 

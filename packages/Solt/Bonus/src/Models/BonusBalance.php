@@ -33,7 +33,7 @@ class BonusBalance extends Model
      * @return BonusBalance
      */
     static function findByCardAndLegalEntity( Card $card, LegalEntity $legal_entity ){
-        return self::whereNull('deleted_at')->where('card_id', $card->id)->where('legal_entity_id', $legal_entity->id)->first();
+        return self::whereNull('deleted_at')->where('card_id', $card->id)->where('legal_entity_id', $legal_entity->id)->lockForUpdate()->first();
     }
 
     /**
