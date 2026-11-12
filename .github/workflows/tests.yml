@@ -43,4 +43,16 @@ jobs:
           php artisan passport:keys --force
 
       - name: Run tests
-        run: vendor/bin/phpunit
+        run: |
+          set -o pipefail
+          vendor/bin/phpunit 2>&1 | tee phpunit-output.txt
+
+      - name: Publish test output
+        if: always()
+        run: |
+          {
+            echo '### PHPUnit'
+            echo '```'
+            tail -n 150 phpunit-output.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
