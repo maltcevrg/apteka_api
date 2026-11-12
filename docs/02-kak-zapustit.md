@@ -1,5 +1,24 @@
 # Как запустить
 
+## Автоматическая установка на Windows
+
+Вместо шагов ниже можно запустить скрипт. Откройте PowerShell **от имени администратора** в папке проекта и выполните:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup-windows.ps1
+```
+
+Скрипт сам:
+
+- установит через winget PHP 8.3, Composer и MariaDB (если их ещё нет);
+- включит нужные расширения в `php.ini`;
+- создаст базы `aptekaapi` и `aptekaapitesting` (пароль root по умолчанию `secret`, изменить: `-DbPassword "..."`);
+- создаст `.env` и `.env.testing`, поставит зависимости, сгенерирует ключи, применит миграции;
+- создаст клиента API и запишет `Client ID` и `Client Secret` в `scripts\.smoke-test.env`;
+- запустит сервер (`-NoServe` — не запускать).
+
+Скрипт можно запускать повторно: сделанные шаги пропускаются. Если MySQL или MariaDB уже установлены, укажите их пароль root через `-DbPassword`.
+
 ## Что нужно
 
 - PHP 8.3 или выше
