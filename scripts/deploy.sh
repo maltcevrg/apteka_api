@@ -75,6 +75,8 @@ cat <<MSG
 
 Готово. Напоминание:
   - После любого изменения .env снова: php artisan config:cache
-  - Прогрев против холодного старта (cron, раз в 5 минут):
-      */5 * * * * curl -s -o /dev/null ${APP_URL:-https://ваш-домен}/api/v1/check
+  - Прогрев против холодного старта:
+      cron каждые 5 минут:  */5 * * * * curl -s -o /dev/null ${APP_URL:-https://ваш-домен}/api/v1/check
+      cron только раз в час: 0 * * * * /bin/bash $(pwd)/scripts/warmup.sh ${APP_URL:-https://ваш-домен}
+    Подробнее: docs/02-installation.md, раздел «Медленный первый запрос»
 MSG
