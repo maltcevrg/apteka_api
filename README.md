@@ -54,5 +54,6 @@ API будет доступно по адресу `http://localhost:8000/api/v1`
 - [Как запустить](docs/02-kak-zapustit.md)
 - [API — все адреса](docs/03-api.md)
 - [Как работают операции с бонусами](docs/09-algoritmy-operatsij.md)
+- [Схемы операций с балансом](docs/10-shemy-operatsij.md)
 - [База данных](docs/04-baza-dannyh.md)
 - [Настройки](docs/05-nastrojki.md)
