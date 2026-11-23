@@ -7,7 +7,7 @@
 # в течение 55 минут). Процесс PHP на хостинге не успевает «заснуть».
 #
 # Строка в cron (в начале каждого часа):
-#   0 * * * * /bin/bash /полный/путь/к/проекту/scripts/warmup.sh https://lek-torg.ru
+#   0 * * * * /bin/bash $HOME/www/lek-torg.ru/app/scripts/warmup.sh https://lek-torg.ru
 #
 # Параметры:
 #   $1        адрес сайта (обязательно), например https://lek-torg.ru
