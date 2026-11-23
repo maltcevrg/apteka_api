@@ -60,14 +60,15 @@ trap - EXIT
 step "Проверка"
 APP_URL=$(grep '^APP_URL=' .env | cut -d= -f2- | tr -d '"' | tr -d "'")
 if [ -n "$APP_URL" ] && command -v curl >/dev/null; then
-    CODE=$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL/api/health" || echo "000")
-    if [ "$CODE" = "200" ]; then
-        echo "GET $APP_URL/api/health → 200, приложение отвечает"
+    # Без токена API отвечает 401 — значит, Laravel поднялся и маршруты работают
+    CODE=$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL/api/v1/check" || echo "000")
+    if [ "$CODE" = "401" ]; then
+        echo "GET $APP_URL/api/v1/check → 401 (без токена), приложение отвечает"
     else
-        echo "GET $APP_URL/api/health → $CODE. Проверьте веб-сервер и APP_URL в .env"
+        echo "GET $APP_URL/api/v1/check → $CODE. Ожидался 401. Проверьте веб-сервер и APP_URL в .env"
     fi
 else
-    echo "Проверьте вручную: curl $APP_URL/api/health"
+    echo "Проверьте вручную: curl -i $APP_URL/api/v1/check  (ожидается 401)"
 fi
 
 cat <<MSG
@@ -75,5 +76,5 @@ cat <<MSG
 Готово. Напоминание:
   - После любого изменения .env снова: php artisan config:cache
   - Прогрев против холодного старта (cron, раз в 5 минут):
-      */5 * * * * curl -s -o /dev/null ${APP_URL:-https://ваш-домен}/api/health
+      */5 * * * * curl -s -o /dev/null ${APP_URL:-https://ваш-домен}/api/v1/check
 MSG
