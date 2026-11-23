@@ -53,6 +53,6 @@ API будет доступно по адресу `http://localhost:8000/api/v1`
 - [О проекте](docs/01-pro-o-proekte.md)
 - [Как запустить](docs/02-kak-zapustit.md)
 - [API — все адреса](docs/03-api.md)
-- [Алгоритмы операций с бонусами](docs/09-algoritmy-operatsij.md)
+- [Как работают операции с бонусами](docs/09-algoritmy-operatsij.md)
 - [База данных](docs/04-baza-dannyh.md)
 - [Настройки](docs/05-nastrojki.md)
