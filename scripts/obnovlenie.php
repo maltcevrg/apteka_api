@@ -12,7 +12,8 @@
  *     — только проверка цепочки остатков в журнале (bonus:ledger-check).
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&fresh=1
  *     — ПЕРЕСОЗДАТЬ базу с нуля (migrate:fresh) и создать клиента Passport.
- *       Работает только если в журнале нет ни одной операции.
+ *       Работает только если в журнале нет ни одной операции;
+ *       чтобы стереть базу с тестовыми операциями — добавить &force=1.
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&schedule=1
  *     — только запуск планировщика (php artisan schedule:run).
  *  4. УДАЛИТЬ public/obnovlenie.php после использования.
@@ -90,10 +91,15 @@ if (!empty($_GET['schedule'])) {
     } catch (Throwable $e) {
         // таблиц ещё нет — база пустая
     }
-    if ($hasOps) {
+    if ($hasOps && empty($_GET['force'])) {
         $ok = false;
-        echo "ОТКАЗ: в журнале уже есть операции, migrate:fresh запрещён.\n";
+        $count = Illuminate\Support\Facades\DB::table('card_operations')->count();
+        echo "ОТКАЗ: в журнале уже есть операции ({$count} шт.), migrate:fresh запрещён.\n"
+            . "Если это тестовые данные и их можно стереть — повторите с параметром &force=1\n";
     } else {
+        if ($hasOps) {
+            echo "ВНИМАНИЕ: force=1 — все таблицы, включая операции, будут удалены.\n\n";
+        }
         $run('migrate:fresh', ['--force' => true]);
         if (!is_file($root . '/storage/oauth-private.key')) {
             $run('passport:keys', ['--no-interaction' => true]);
