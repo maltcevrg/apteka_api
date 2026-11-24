@@ -61,22 +61,16 @@
 - `2` — `move_action` — перевод баланса
 - `3` — `increase_return_action` — возврат начисления
 - `4` — `decreser_return_action` — возврат списания
+- `5` — `cancel_action` — отмена (сторно), `parent_id` → отменённая операция
 
-## Таблица `bonus_balances` — бонусные остатки
-
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `id` | bigIncrements | Первичный ключ |
-| `legal_entity_id` | unsignedBigInteger | FK → `legal_entities.id` |
-| `card_id` | unsignedBigInteger | FK → `cards.id` |
-| `sum` | decimal, default 0.0 | Остаток бонусов карты по юридическому лицу |
+Поля нарастающего итога: `wallet_after` — остаток по карте и юрлицу после операции, `card_after` — остаток карты после операции. Баланс карты = `card_after` последней строки.
 
 ## Связи моделей
 
 - `Card` → `operations` (hasMany `CardOperation`)
-- `Card` → `balances` (hasMany `BonusBalance`)
-- `CardOperation` → `card` (belongsTo), `legal_entity` (belongsTo), `pharmacy` (belongsTo)
-- `LegalEntity` → `operations` (hasMany), `pharmacies` (hasMany), `bonusBalances` (hasMany)
+- `Card` → `legal_entity` (belongsTo, владелец карты по первой операции)
+- `CardOperation` → `card`, `legal_entity`, `pharmacy` (belongsTo), `parent` (belongsTo, у сторно), `cancellation` (hasOne)
+- `LegalEntity` → `operations` (hasMany), `pharmacies` (hasMany)
 - `Pharmacy` → `operations` (hasMany), `legal_entity` (belongsTo)
 - `BonusBalance` → `card` (belongsTo), `legal_entity` (belongsTo)
 
