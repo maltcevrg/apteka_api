@@ -76,7 +76,7 @@ cat <<MSG
 Готово. Напоминание:
   - После любого изменения .env снова: php artisan config:cache
   - Прогрев против холодного старта:
-      cron каждые 5 минут:  */5 * * * * curl -s -o /dev/null ${APP_URL:-https://lek-torg.ru}/api/v1/check
-      cron только раз в час: скопировать scripts/warmup.sh в корень проекта, задание 0 * * * * /bin/bash www/lek-torg.ru/app/warmup.sh
+      скопировать scripts/warmup.sh в корень проекта и добавить cron каждые 5 минут:
+      */5 * * * * /bin/bash ~/www/lek-torg.ru/app/warmup.sh
     Подробнее: docs/02-installation.md, раздел «Медленный первый запрос»
 MSG
