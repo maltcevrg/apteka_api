@@ -23,8 +23,8 @@ API выделено в отдельный Laravel-пакет `packages/Solt/Bon
 2. **Контроллеры** (`src/Http/Controllers/`) — принимают HTTP-запросы и deleгируют работу сервисам. Возвращают JSON-ответы со статус-кодами (200, 201, 202, 204).
 3. **Формы запросов** (`src/Http/Requests/`) — валидация входящих данных (правила Laravel FormRequest).
 4. **Ресурсы** (`src/Http/Resources/`) — преобразование Eloquent-моделей в массивы/JSON-ответы (CardResource, PharmacyResource и т.д.).
-5. **Модели** (`src/Models/`) — Eloquent-модели с мягким удалением (`SoftDeletes`): `Card`, `Pharmacy`, `LegalEntity`, `CardOperation`, `BonusBalance`.
-6. **Сервисы** (`src/Services/`) — бизнес-логика: `CardService`, `CardOperationService`, `PharmacyService`, `LegalEntityService`, `BonusBalanceService`.
+5. **Модели** (`src/Models/`) — Eloquent-модели: `Card`, `Pharmacy`, `LegalEntity` (с мягким удалением), `CardOperation` (журнал, строки не удаляются).
+6. **Сервисы** (`src/Services/`) — бизнес-логика: `CardService`, `CardOperationService`, `LedgerService` (запись в журнал с нарастающим итогом), `PharmacyService`, `LegalEntityService`.
 7. **Интерфейсы** (`src/Interfaces/`) — контракты сервисов (`CardInterface`, `CardOperationInterface` и т.д.), реализуются соответствующими сервисами.
 
 ## Аутентификация

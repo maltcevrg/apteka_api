@@ -72,7 +72,6 @@
 - `CardOperation` → `card`, `legal_entity`, `pharmacy` (belongsTo), `parent` (belongsTo, у сторно), `cancellation` (hasOne)
 - `LegalEntity` → `operations` (hasMany), `pharmacies` (hasMany)
 - `Pharmacy` → `operations` (hasMany), `legal_entity` (belongsTo)
-- `BonusBalance` → `card` (belongsTo), `legal_entity` (belongsTo)
 
 ## Применение миграций
 
