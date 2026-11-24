@@ -23,7 +23,8 @@ class CardOperationResource extends JsonResource
             'document_date'     => $this->document_date,
             'document_number'   => $this->document_number,
             'document_type'     => $this->document_type,
-            'amount'            => $this->amount
+            'amount'            => $this->amount,
+            'balance_after'     => $this->card_after
         ];
     }
 }

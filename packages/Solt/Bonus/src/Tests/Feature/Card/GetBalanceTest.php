@@ -6,8 +6,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
-use Solt\Bonus\Models\BonusBalance;
 use Solt\Bonus\Models\Card;
+use Solt\Bonus\Models\CardOperation;
 
 class GetBalanceTest extends TestCase
 {
@@ -26,7 +26,7 @@ class GetBalanceTest extends TestCase
             ['*']
         );
 
-        $bonus_balance_item = BonusBalance::factory()->create();
+        $bonus_balance_item = CardOperation::factory()->credit()->create();
 
         $this->getJson( route('api.bonus.balance.get', $bonus_balance_item->card->short_code) )
             ->assertStatus(200)
@@ -47,7 +47,7 @@ class GetBalanceTest extends TestCase
             ['*']
         );
 
-        $bonus_balance_item = BonusBalance::factory()->create();
+        $bonus_balance_item = CardOperation::factory()->credit()->create();
 
         $this->getJson('/api/v1/bonus/balance/')
             ->assertStatus(404);
@@ -65,7 +65,7 @@ class GetBalanceTest extends TestCase
             ['*']
         );
 
-        $bonus_balance_item = BonusBalance::factory()->create();
+        $bonus_balance_item = CardOperation::factory()->credit()->create();
 
         $this->getJson( route('api.bonus.balance.get', fake()->bothify('????#####')) )
             ->assertStatus(202);
@@ -84,13 +84,13 @@ class GetBalanceTest extends TestCase
         );
 
         $card = Card::factory()->create();
-        $bonus_balance_item_1 = BonusBalance::factory()->create(['card_id' => $card->id]);
-        $bonus_balance_item_2 = BonusBalance::factory()->create(['card_id' => $card->id]);
+        $bonus_balance_item_1 = CardOperation::factory()->credit()->create(['card_id' => $card->id]);
+        $bonus_balance_item_2 = CardOperation::factory()->credit()->create(['card_id' => $card->id]);
 
         $this->getJson( route('api.bonus.balance.get', $card->short_code ) )
             ->assertStatus(200)
             ->assertJson([
-                'balance' => round($bonus_balance_item_1['sum'] + $bonus_balance_item_2['sum'], 2)
+                'balance' => round($bonus_balance_item_1->amount + $bonus_balance_item_2->amount, 2)
             ]);
     }
 

@@ -49,11 +49,4 @@ class LegalEntity extends Model
     public function pharmacies(){
         return $this->hasMany( Pharmacy::class );
     }
-
-    /**
-     * Получение балансов
-     */
-    public function bonusBalances(){
-        return $this->hasMany( BonusBalance::class );
-    }
 }

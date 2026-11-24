@@ -5,18 +5,13 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Solt\Bonus\Http\Resources\CardOperationResource;
-use Solt\Bonus\Http\Resources\CardResource;
-use Solt\Bonus\Interfaces\Card\CardInterface;
 use Solt\Bonus\Interfaces\CardOperation\CardOperationInterface;
-use Solt\Bonus\Models\BonusBalance;
 use Solt\Bonus\Models\Card;
 use Solt\Bonus\Models\CardOperation;
 use Solt\Bonus\Models\LegalEntity;
 use Solt\Bonus\Models\Pharmacy;
 
 class CardOperationService implements CardOperationInterface{
-
-    protected BonusBalanceService $bonus_balance_service;
 
     /**
      * @inheritcod
@@ -33,32 +28,37 @@ class CardOperationService implements CardOperationInterface{
     }
 
     /**
+     * Начисление, списание, возвраты.
      * @inheritcod
      */
     function store(array $data): JsonResource|Bool
     {
         return DB::transaction(function () use ($data) {
             // Блокируем строку карты: все операции по одной карте выполняются
-            // последовательно, и баланс проверяется уже под блокировкой.
+            // последовательно, и остаток читается уже под блокировкой.
             $card = Card::findByShortCode( $data['short_code'], true );
-            if( $card->getBalance() + $data['amount'] < 0 ){
+            $amount = (float) $data['amount'];
+
+            if( $card->getBalance() + $amount < 0 ){
                 return false;
             }
 
-            $card_operation = new CardOperation( $data );
-            $card_operation->card()->associate( $card ) ;
-            $card_operation->legal_entity()->associate( LegalEntity::findByInn( $data['inn'] )) ;
-            $card_operation->pharmacy()->associate( Pharmacy::findByNumber( $data['pharmacy_number'] ) );
-            $card_operation->save();
-
-            $this->bonus_balance_service = new BonusBalanceService( $card_operation->card, $card_operation->legal_entity );
-            $this->bonus_balance_service->changeBalance( $card_operation->amount );
+            $card_operation = LedgerService::append(
+                $card,
+                LegalEntity::findByInn( $data['inn'] ),
+                Pharmacy::findByNumber( $data['pharmacy_number'] ),
+                (int) $data['action'],
+                $amount,
+                $data
+            );
 
             return new CardOperationResource( $card_operation );
         });
     }
 
     /**
+     * Отмена операции — сторно: новая строка с обратной суммой и ссылкой
+     * на исходную; исходная помечается deleted_at («погашена»).
      * @inheritcod
      */
     function delete( String $short_code, String $document_number, String $document_type ) : Bool {
@@ -67,23 +67,38 @@ class CardOperationService implements CardOperationInterface{
             if( empty( $card ) ){
                 return false;
             }
-            $card_operation = CardOperation::findByRequisites( $short_code, $document_number, $document_type );
-            if( empty( $card_operation ) ){
+            $original = CardOperation::findByRequisites( $short_code, $document_number, $document_type );
+            if( empty( $original ) || $original->action == CardOperation::$cancel_action ){
                 return false;
             }
-            if( $card->getBalance() - $card_operation->amount < 0 ){
+            $amount = -1 * (float) $original->amount;
+            if( $card->getBalance() + $amount < 0 ){
                 return false;
             }
 
-            $this->bonus_balance_service = new BonusBalanceService( $card_operation->card, $card_operation->legal_entity );
-            $this->bonus_balance_service->changeBalance( -1*$card_operation->amount );
+            LedgerService::append(
+                $card,
+                $original->legal_entity,
+                $original->pharmacy,
+                CardOperation::$cancel_action,
+                $amount,
+                [
+                    'document_date'   => now()->format('Y-m-d'),
+                    'document_number' => $original->document_number,
+                    'document_type'   => $original->document_type,
+                ],
+                $original
+            );
 
-            $card_operation->delete();
+            $original->deleted_at = now();
+            $original->save();
+
             return true;
         });
     }
 
     /**
+     * Перенос всех кошельков карты на другую карту: по паре строк на каждое юрлицо.
      * @inheritcod
      */
     function move(String $short_code_from, String $short_code_to, String $document_number, String $document_date, String $document_type): Bool
@@ -92,47 +107,24 @@ class CardOperationService implements CardOperationInterface{
             $card_from = Card::findByShortCode( $short_code_from, true );
             $card_to = Card::findByShortCode( $short_code_to, true );
 
-            $card_from_balance = $card_from->getBalance();
-
-            if( $card_from_balance == 0 ){
+            if( $card_from->getBalance() == 0 ){
                 return false;
             }
 
-            // Переносим каждый кошелёк (юрлицо) отдельно и пишем по паре операций
-            // на кошелёк, чтобы остатки по юрлицам сходились с журналом.
-            foreach( $card_from->balances()->get() as $card_from_bonus_balance ){
-                $sum = (float) $card_from_bonus_balance->sum;
+            $document = [
+                'document_number' => $document_number,
+                'document_date'   => $document_date,
+                'document_type'   => $document_type,
+            ];
+
+            foreach( $card_from->getWallets() as $legal_entity_id => $sum ){
                 if( abs($sum) < 0.005 ){
                     continue;
                 }
-                $legal_entity = $card_from_bonus_balance->legal_entity;
+                $legal_entity = $legal_entity_id === '' ? null : LegalEntity::find( $legal_entity_id );
 
-                $card_operation_to = new CardOperation([
-                    'action'            => CardOperation::$move_action,
-                    'document_number'   => $document_number,
-                    'document_date'     => $document_date,
-                    'document_type'     => $document_type,
-                    'amount'            => $sum
-                ]);
-                $card_operation_to->card()->associate( $card_to );
-                $card_operation_to->legal_entity()->associate( $legal_entity );
-                $card_operation_to->save();
-
-                $card_operation_from = new CardOperation([
-                    'action'            => CardOperation::$move_action,
-                    'document_number'   => $document_number,
-                    'document_date'     => $document_date,
-                    'document_type'     => $document_type,
-                    'amount'            => -1*$sum
-                ]);
-                $card_operation_from->card()->associate( $card_from );
-                $card_operation_from->legal_entity()->associate( $legal_entity );
-                $card_operation_from->save();
-
-                $card_to_bonus_balance_service = new BonusBalanceService( $card_to, $legal_entity );
-                $card_to_bonus_balance_service->changeBalance( $sum );
-                $card_from_bonus_balance_service = new BonusBalanceService( $card_from, $legal_entity );
-                $card_from_bonus_balance_service->changeBalance( -1*$sum );
+                LedgerService::append( $card_to,   $legal_entity, null, CardOperation::$move_action,  $sum, $document );
+                LedgerService::append( $card_from, $legal_entity, null, CardOperation::$move_action, -$sum, $document );
             }
             return true;
         });

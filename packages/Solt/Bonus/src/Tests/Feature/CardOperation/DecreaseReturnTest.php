@@ -6,7 +6,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
-use Solt\Bonus\Models\BonusBalance;
 use Solt\Bonus\Models\Card;
 use Solt\Bonus\Models\CardOperation;
 use Solt\Bonus\Models\Pharmacy;
