@@ -12,7 +12,8 @@
  *     — только проверка цепочки остатков в журнале (bonus:ledger-check).
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&fresh=1
  *     — ПЕРЕСОЗДАТЬ базу с нуля (migrate:fresh) и создать клиента Passport.
- *       Работает только если в журнале нет ни одной операции.
+ *       Работает только если в журнале нет ни одной операции;
+ *       чтобы стереть базу с тестовыми операциями — добавить &force=1.
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&schedule=1
  *     — только запуск планировщика (php artisan schedule:run).
  *  4. УДАЛИТЬ public/obnovlenie.php после использования.
@@ -90,16 +91,32 @@ if (!empty($_GET['schedule'])) {
     } catch (Throwable $e) {
         // таблиц ещё нет — база пустая
     }
-    if ($hasOps) {
+    if ($hasOps && empty($_GET['force'])) {
         $ok = false;
-        echo "ОТКАЗ: в журнале уже есть операции, migrate:fresh запрещён.\n";
+        $count = Illuminate\Support\Facades\DB::table('card_operations')->count();
+        echo "ОТКАЗ: в журнале уже есть операции ({$count} шт.), migrate:fresh запрещён.\n"
+            . "Если это тестовые данные и их можно стереть — повторите с параметром &force=1\n";
     } else {
+        if ($hasOps) {
+            echo "ВНИМАНИЕ: force=1 — все таблицы, включая операции, будут удалены.\n\n";
+        }
         $run('migrate:fresh', ['--force' => true]);
         if (!is_file($root . '/storage/oauth-private.key')) {
             $run('passport:keys', ['--no-interaction' => true]);
         }
-        $run('passport:client', ['--client' => true, '--name' => 'Кассы', '--no-interaction' => true]);
-        echo "ВНИМАНИЕ: выше Client ID и Client Secret нового клиента — сохраните, секрет больше не показывается.\n\n";
+        // Команды Passport регистрируются только в консоли, поэтому клиента создаём напрямую
+        echo "==> создание клиента Passport (client_credentials)\n";
+        try {
+            $client = $app->make(Laravel\Passport\ClientRepository::class)
+                ->createClientCredentialsGrantClient('Кассы');
+            $secret = $client->plainSecret ?? $client->secret;
+            echo "Client ID:     {$client->getKey()}\n";
+            echo "Client Secret: {$secret}\n";
+            echo "СОХРАНИТЕ СЕКРЕТ — он больше нигде не показывается. Пропишите в 1С.\n\n";
+        } catch (Throwable $e) {
+            $ok = false;
+            echo "ОШИБКА создания клиента: " . $e->getMessage() . "\n\n";
+        }
         $run('config:cache');
         $run('route:cache');
         $run('event:cache');
