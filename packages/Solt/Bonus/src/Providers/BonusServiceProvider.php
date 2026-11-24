@@ -18,6 +18,7 @@ class BonusServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Solt\Bonus\Console\LedgerCheckCommand::class,
+                \Solt\Bonus\Console\ImportCommand::class,
             ]);
         }
     }
