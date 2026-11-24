@@ -45,9 +45,12 @@ class CloseMonthTest extends TestCase
             'card_id' => $card->id, 'legal_entity_id' => $le->id, 'pharmacy_id' => $this->pharmacy->id,
             'action' => $action, 'amount' => $amount, 'document_date' => $date,
         ]);
-        $balance = BonusBalance::withTrashed()->firstOrCreate(
-            ['card_id' => $card->id, 'legal_entity_id' => $le->id], ['sum' => 0]
-        );
+        $balance = BonusBalance::where('card_id', $card->id)->where('legal_entity_id', $le->id)->first();
+        if (!$balance) {
+            $balance = new BonusBalance(['sum' => 0]);
+            $balance->card()->associate($card);
+            $balance->legal_entity()->associate($le);
+        }
         $balance->sum = $balance->sum + $amount;
         $balance->save();
         return $op;
