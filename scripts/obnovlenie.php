@@ -104,8 +104,19 @@ if (!empty($_GET['schedule'])) {
         if (!is_file($root . '/storage/oauth-private.key')) {
             $run('passport:keys', ['--no-interaction' => true]);
         }
-        $run('passport:client', ['--client' => true, '--name' => 'Кассы', '--no-interaction' => true]);
-        echo "ВНИМАНИЕ: выше Client ID и Client Secret нового клиента — сохраните, секрет больше не показывается.\n\n";
+        // Команды Passport регистрируются только в консоли, поэтому клиента создаём напрямую
+        echo "==> создание клиента Passport (client_credentials)\n";
+        try {
+            $client = $app->make(Laravel\Passport\ClientRepository::class)
+                ->createClientCredentialsGrantClient('Кассы');
+            $secret = $client->plainSecret ?? $client->secret;
+            echo "Client ID:     {$client->getKey()}\n";
+            echo "Client Secret: {$secret}\n";
+            echo "СОХРАНИТЕ СЕКРЕТ — он больше нигде не показывается. Пропишите в 1С.\n\n";
+        } catch (Throwable $e) {
+            $ok = false;
+            echo "ОШИБКА создания клиента: " . $e->getMessage() . "\n\n";
+        }
         $run('config:cache');
         $run('route:cache');
         $run('event:cache');
