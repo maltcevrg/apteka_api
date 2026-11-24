@@ -16,3 +16,6 @@ yarn-error.log
 /.idea
 /.vscode
 scripts/.smoke-test.env
+warmup.log
+warmup.lock
+/warmup.sh
