@@ -27,7 +27,10 @@ class CardOperation extends Model
     ];
 
     protected $casts = [
-        'deleted_at' => 'datetime',
+        'deleted_at'   => 'datetime',
+        'amount'       => 'float',
+        'wallet_after' => 'float',
+        'card_after'   => 'float',
     ];
 
     static $increase_action = 0;
@@ -47,10 +50,15 @@ class CardOperation extends Model
     protected static function booted()
     {
         static::creating(function (CardOperation $operation) {
+            // Суммы в журнале хранятся с точностью до копеек (2 знака после запятой).
+            $operation->amount = round((float) $operation->amount, 2);
             if ($operation->card_after === null || $operation->wallet_after === null) {
                 $amount = (float) $operation->amount;
                 $operation->wallet_after = round(\Solt\Bonus\Services\LedgerService::walletBalance($operation->card_id, $operation->legal_entity_id) + $amount, 2);
                 $operation->card_after   = round(\Solt\Bonus\Services\LedgerService::cardBalance($operation->card_id) + $amount, 2);
+            } else {
+                $operation->wallet_after = round((float) $operation->wallet_after, 2);
+                $operation->card_after   = round((float) $operation->card_after, 2);
             }
         });
     }
