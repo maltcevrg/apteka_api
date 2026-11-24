@@ -16,3 +16,4 @@ yarn-error.log
 /.idea
 /.vscode
 scripts/.smoke-test.env
+/public/obnovlenie.php
