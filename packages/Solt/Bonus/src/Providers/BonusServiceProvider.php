@@ -15,12 +15,12 @@ class BonusServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
 
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                \Solt\Bonus\Console\LedgerCheckCommand::class,
-                \Solt\Bonus\Console\ImportCommand::class,
-            ]);
-        }
+        // Без проверки runningInConsole(): команды должны быть доступны
+        // и при запуске artisan из веб-скрипта (public/obnovlenie.php).
+        $this->commands([
+            \Solt\Bonus\Console\LedgerCheckCommand::class,
+            \Solt\Bonus\Console\ImportCommand::class,
+        ]);
     }
 
     /**
