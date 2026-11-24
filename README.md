@@ -60,5 +60,6 @@ API будет доступно по адресу `http://localhost:8000/api/v1`
 - [Срезы остатков и отчёты](docs/13-sreyzy-i-otchety.md)
 - [Закрытие месяца: инструкция](docs/14-zakrytie-mesyatsa.md)
 - [Схема базы данных](docs/15-shema-bazy-dannyh.md)
+- [Проект: журнал как единственный источник баланса](docs/16-proekt-perehoda-na-zhurnal.md)
 - [База данных](docs/04-baza-dannyh.md)
 - [Настройки](docs/05-nastrojki.md)
