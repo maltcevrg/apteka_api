@@ -85,9 +85,15 @@ class Card extends Model
      * @return Float
      */
     function getBalance(){
-        // Свежий запрос, а не кэшированное отношение: внутри транзакции
-        // баланс должен отражать текущее состояние базы.
-        return round((float) $this->balances()->sum('sum'), 2);
+        // Остаток карты — card_after последней строки журнала.
+        return \Solt\Bonus\Services\LedgerService::cardBalance($this);
+    }
+
+    /**
+     * Кошельки карты: [legal_entity_id => остаток]
+     */
+    function getWallets(): array {
+        return \Solt\Bonus\Services\LedgerService::wallets($this);
     }
 
     /**
@@ -98,9 +104,9 @@ class Card extends Model
     }
 
     /**
-     * Получение баланса по карте
+     * Юрлицо-владелец карты (по первой операции)
      */
-    public function balances(){
-        return $this->hasMany( BonusBalance::class );
+    public function legal_entity(){
+        return $this->belongsTo( LegalEntity::class );
     }
 }

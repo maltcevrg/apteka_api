@@ -20,7 +20,7 @@ class IncreaseReturnRequest extends FormRequest{
             'pharmacy_number'   => ['required', 'numeric', 'between:1,99', 'exists:pharmacies,number'],
             'inn'               => ['required', 'regex:/^[0-9]{10,20}$/i', 'exists:legal_entities,inn'],
             'document_date'     => ['required', 'date'],
-            'document_number'   => ['required', 'string', 'max:12', 'unique:card_operations,document_number,NULL,id,deleted_at,NULL'],
+            'document_number'   => ['required', 'string', 'max:12', 'unique:card_operations,document_number,NULL,id,deleted_at,NULL,action,!5'],
             'document_type'     => ['required', 'string', 'max:40'],
             'amount'            => ['required', 'numeric', 'max:-0.01']
         ];

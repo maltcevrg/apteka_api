@@ -19,7 +19,7 @@ class MoveRequest extends FormRequest{
             'short_code_from'   => ['required', 'string', 'exists:cards,short_code', 'min:9', 'max:13'],
             'short_code_to'     => ['required', 'string', 'exists:cards,short_code', 'min:9', 'max:13'],
             'document_date'     => ['required', 'date'],
-            'document_number'   => ['required', 'string', 'max:12', 'unique:card_operations,document_number,NULL,id,deleted_at,NULL'],
+            'document_number'   => ['required', 'string', 'max:12', 'unique:card_operations,document_number,NULL,id,deleted_at,NULL,action,!5'],
             'document_type'     => ['required', 'string', 'max:40'],
         ];
     }

@@ -38,4 +38,15 @@ class CardOperationFactory extends Factory{
             'amount'            => fake()->randomFloat(2,-2,30)
         ];
     }
+
+    /**
+     * Начисление на заданную (или случайную положительную) сумму.
+     */
+    public function credit(?float $amount = null): static
+    {
+        return $this->state(fn () => [
+            'action' => CardOperation::$increase_action,
+            'amount' => $amount ?? fake()->randomFloat(2, 1, 20000),
+        ]);
+    }
 }

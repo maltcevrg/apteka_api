@@ -6,7 +6,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
-use Solt\Bonus\Models\BonusBalance;
 use Solt\Bonus\Models\Card;
 use Solt\Bonus\Models\CardOperation;
 use Solt\Bonus\Models\LegalEntity;
@@ -280,7 +279,7 @@ class IncreaseTest extends TestCase
         $card = Card::factory()->create();
         $pharmacy = Pharmacy::factory()->create();
 
-        $bonus_balance_item = BonusBalance::factory()->create(['card_id' => $card->id]);
+        $bonus_balance_item = CardOperation::factory()->credit()->create(['card_id' => $card->id]);
 
         $payload = [
             'short_code'        => $card->short_code,
@@ -297,7 +296,7 @@ class IncreaseTest extends TestCase
         $this->getJson( route('api.bonus.balance.get', $card->short_code ) )
             ->assertStatus(200)
             ->assertJson([
-                'balance' => round(($bonus_balance_item['sum'] + $payload['amount']), 2)
+                'balance' => round(($bonus_balance_item->amount + $payload['amount']), 2)
             ]);
 
     }

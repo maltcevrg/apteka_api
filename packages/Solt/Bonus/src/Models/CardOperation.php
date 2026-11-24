@@ -4,12 +4,19 @@ namespace Solt\Bonus\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Solt\Bonus\Database\Factories\CardOperationFactory;
 
+/**
+ * Строка журнала операций. Журнал — единственный источник баланса:
+ * wallet_after / card_after — остаток кошелька и карты после этой строки.
+ *
+ * deleted_at здесь НЕ мягкое удаление, а пометка «погашена сторно»:
+ * строка остаётся частью цепочки остатков и всегда читается.
+ * Сама отмена — отдельная строка с action = 5 и parent_id на исходную.
+ */
 class CardOperation extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'action',
@@ -19,6 +26,10 @@ class CardOperation extends Model
         'amount'
     ];
 
+    protected $casts = [
+        'deleted_at' => 'datetime',
+    ];
+
     static $increase_action = 0;
     static $decreser_action = 1;
 
@@ -26,6 +37,23 @@ class CardOperation extends Model
     static $decreser_return_action = 4;
 
     static $move_action = 2;
+
+    static $cancel_action = 5; // сторно: отмена операции parent_id
+
+    /**
+     * Нарастающий итог считается при вставке, если не задан явно
+     * (LedgerService задаёт сам; фабрики в тестах — нет).
+     */
+    protected static function booted()
+    {
+        static::creating(function (CardOperation $operation) {
+            if ($operation->card_after === null || $operation->wallet_after === null) {
+                $amount = (float) $operation->amount;
+                $operation->wallet_after = round(\Solt\Bonus\Services\LedgerService::walletBalance($operation->card_id, $operation->legal_entity_id) + $amount, 2);
+                $operation->card_after   = round(\Solt\Bonus\Services\LedgerService::cardBalance($operation->card_id) + $amount, 2);
+            }
+        });
+    }
 
 
     /**
@@ -50,6 +78,20 @@ class CardOperation extends Model
         return self::whereHas('card', function ( $query ) use ($short_code) {
             $query->where('short_code', $short_code);
         })->whereNull('deleted_at')->where('document_number', $document_number)->where('document_type', $document_type)->first();
+    }
+
+    /**
+     * Исходная операция (для сторно)
+     */
+    public function parent(){
+        return $this->belongsTo(CardOperation::class, 'parent_id');
+    }
+
+    /**
+     * Сторно этой операции, если она отменена
+     */
+    public function cancellation(){
+        return $this->hasOne(CardOperation::class, 'parent_id');
     }
 
     /**

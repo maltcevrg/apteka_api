@@ -7,8 +7,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
-use Solt\Bonus\Models\BonusBalance;
 use Solt\Bonus\Models\Card;
+use Solt\Bonus\Models\CardOperation;
 
 class MoveBalancesTest extends TestCase
 {
@@ -28,10 +28,10 @@ class MoveBalancesTest extends TestCase
         );
 
         $card_1 = Card::factory()->create();
-        $bonus_balance_1 = BonusBalance::factory(5)->create(['card_id' => $card_1->id]);
+        $bonus_balance_1 = CardOperation::factory(5)->credit()->create(['card_id' => $card_1->id]);
 
         $card_2 = Card::factory()->create();
-        $bonus_balance_2 = BonusBalance::factory(5)->create(['card_id' => $card_2->id]);
+        $bonus_balance_2 = CardOperation::factory(5)->credit()->create(['card_id' => $card_2->id]);
 
         $payload = [
             'short_code_from'   => $card_1->short_code,
@@ -58,10 +58,10 @@ class MoveBalancesTest extends TestCase
         );
 
         $card_1 = Card::factory()->create();
-        $bonus_balance_1 = BonusBalance::factory(5)->create(['card_id' => $card_1->id]);
+        $bonus_balance_1 = CardOperation::factory(5)->credit()->create(['card_id' => $card_1->id]);
 
         $card_2 = Card::factory()->create();
-        $bonus_balance_2 = BonusBalance::factory(5)->create(['card_id' => $card_2->id]);
+        $bonus_balance_2 = CardOperation::factory(5)->credit()->create(['card_id' => $card_2->id]);
 
         $result_balance = $card_1->getBalance() + $card_2->getBalance();
 
@@ -95,10 +95,10 @@ class MoveBalancesTest extends TestCase
         );
 
         $card_1 = Card::factory()->create();
-        $bonus_balance_1 = BonusBalance::factory(5)->create(['card_id' => $card_1->id]);
+        $bonus_balance_1 = CardOperation::factory(5)->credit()->create(['card_id' => $card_1->id]);
 
         $card_2 = Card::factory()->create();
-        $bonus_balance_2 = BonusBalance::factory(5)->create(['card_id' => $card_2->id]);
+        $bonus_balance_2 = CardOperation::factory(5)->credit()->create(['card_id' => $card_2->id]);
 
         $payload = [
             'short_code_from'   => $card_1->short_code,
@@ -130,7 +130,7 @@ class MoveBalancesTest extends TestCase
         );
 
         $card_1 = Card::factory()->create();
-        $bonus_balance_1 = BonusBalance::factory(5)->create(['card_id' => $card_1->id]);
+        $bonus_balance_1 = CardOperation::factory(5)->credit()->create(['card_id' => $card_1->id]);
 
         $card_2 = Card::factory()->create();
 

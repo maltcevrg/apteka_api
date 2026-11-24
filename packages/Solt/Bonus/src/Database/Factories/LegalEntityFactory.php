@@ -3,7 +3,6 @@
 namespace Solt\Bonus\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Solt\Bonus\Models\BonusBalance;
 use Solt\Bonus\Models\LegalEntity;
 
 /**

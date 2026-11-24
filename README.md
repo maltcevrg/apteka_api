@@ -59,5 +59,6 @@ API будет доступно по адресу `http://localhost:8000/api/v1`
 - [Переезд на VPS](docs/12-pereezd-na-vps.md)
 - [Схема базы данных](docs/15-shema-bazy-dannyh.md)
 - [Проект: журнал как единственный источник баланса](docs/16-proekt-perehoda-na-zhurnal.md)
+- [План перехода на журнал](docs/17-plan-perehoda-na-zhurnal.md)
 - [База данных](docs/04-baza-dannyh.md)
 - [Настройки](docs/05-nastrojki.md)

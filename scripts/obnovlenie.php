@@ -8,6 +8,11 @@
  *  3. Открыть в браузере:
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет
  *     — выполнит миграции и пересоберёт кэши.
+ *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&check=1
+ *     — только проверка цепочки остатков в журнале (bonus:ledger-check).
+ *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&fresh=1
+ *     — ПЕРЕСОЗДАТЬ базу с нуля (migrate:fresh) и создать клиента Passport.
+ *       Работает только если в журнале нет ни одной операции.
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&schedule=1
  *     — только запуск планировщика (php artisan schedule:run).
  *  4. УДАЛИТЬ public/obnovlenie.php после использования.
@@ -75,6 +80,30 @@ echo "Папка: {$root}\n\n";
 
 if (!empty($_GET['schedule'])) {
     $run('schedule:run');
+} elseif (!empty($_GET['check'])) {
+    $run('bonus:ledger-check');
+} elseif (!empty($_GET['fresh'])) {
+    $hasOps = false;
+    try {
+        $hasOps = Illuminate\Support\Facades\Schema::hasTable('card_operations')
+            && Illuminate\Support\Facades\DB::table('card_operations')->exists();
+    } catch (Throwable $e) {
+        // таблиц ещё нет — база пустая
+    }
+    if ($hasOps) {
+        $ok = false;
+        echo "ОТКАЗ: в журнале уже есть операции, migrate:fresh запрещён.\n";
+    } else {
+        $run('migrate:fresh', ['--force' => true]);
+        if (!is_file($root . '/storage/oauth-private.key')) {
+            $run('passport:keys', ['--no-interaction' => true]);
+        }
+        $run('passport:client', ['--client' => true, '--name' => 'Кассы', '--no-interaction' => true]);
+        echo "ВНИМАНИЕ: выше Client ID и Client Secret нового клиента — сохраните, секрет больше не показывается.\n\n";
+        $run('config:cache');
+        $run('route:cache');
+        $run('event:cache');
+    }
 } else {
     $run('migrate', ['--force' => true]);
     $run('config:cache');

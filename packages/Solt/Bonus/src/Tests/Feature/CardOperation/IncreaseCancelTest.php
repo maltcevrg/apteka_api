@@ -6,7 +6,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
-use Solt\Bonus\Models\BonusBalance;
 use Solt\Bonus\Models\Card;
 use Solt\Bonus\Models\CardOperation;
 use Solt\Bonus\Models\LegalEntity;
@@ -29,7 +28,7 @@ class IncreaseCancelTest extends TestCase{
         );
 
         $card_operation = CardOperation::factory()->create();
-        $bonus_balance = BonusBalance::factory(5)->create(['card_id' => $card_operation->card->id]);
+        $bonus_balance = CardOperation::factory(5)->credit()->create(['card_id' => $card_operation->card->id]);
 
         $payload = [
             'short_code'        => $card_operation->card->short_code,
@@ -127,9 +126,9 @@ class IncreaseCancelTest extends TestCase{
         $card = Card::factory()->create();
         $pharmacy = Pharmacy::factory()->create();
 
-        $bonus_balance_item = BonusBalance::factory()->create(['card_id' => $card->id]);
+        $bonus_balance_item = CardOperation::factory()->credit()->create(['card_id' => $card->id]);
 
-        $start_sum = $bonus_balance_item['sum'];
+        $start_sum = $bonus_balance_item->amount;
 
         $payload = [
             'short_code'        => $card->short_code,

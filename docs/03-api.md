@@ -88,6 +88,15 @@ Authorization: Bearer ВАШ_ТОКЕН
 - `document_type` — тип документа
 - `amount` — сумма (больше 0)
 
+Ответ `201` — данные операции и поле `balance_after` — баланс карты сразу после операции (можно печатать на чеке, отдельный запрос баланса не нужен):
+
+```json
+{"id": 15, "action": 0, "document_date": "2026-07-04", "document_number": "123456789012",
+ "document_type": "Чек ККМ", "amount": 100, "balance_after": 250.5}
+```
+
+`balance_after` есть в ответах на начисление, списание и оба возврата.
+
 ### Вернуть начисление
 
 **POST** `/api/v1/bonus/increase/return`
