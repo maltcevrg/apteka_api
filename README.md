@@ -56,5 +56,6 @@ API будет доступно по адресу `http://localhost:8000/api/v1`
 - [Как работают операции с бонусами](docs/09-algoritmy-operatsij.md)
 - [Схемы операций с балансом](docs/10-shemy-operatsij.md)
 - [Подключение из 1С 7.7](docs/11-podklyuchenie-iz-1c.md)
+- [Переезд на VPS](docs/12-pereezd-na-vps.md)
 - [База данных](docs/04-baza-dannyh.md)
 - [Настройки](docs/05-nastrojki.md)

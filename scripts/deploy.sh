@@ -53,6 +53,14 @@ step "Кэши Laravel"
 step "Права на каталоги"
 chmod -R ug+rwX storage bootstrap/cache 2>/dev/null || true
 
+step "Сброс OPcache"
+if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet php8.3-fpm 2>/dev/null; then
+    if systemctl reload php8.3-fpm 2>/dev/null; then echo "php8.3-fpm перезагружен"
+    else echo "нет прав на reload php8.3-fpm — выполните от root: systemctl reload php8.3-fpm"; fi
+else
+    echo "php-fpm не под systemd (виртуальный хостинг?) — пропущено"
+fi
+
 step "Выход из режима обслуживания"
 "$PHP" artisan up
 trap - EXIT
