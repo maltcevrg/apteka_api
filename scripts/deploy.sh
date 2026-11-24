@@ -83,8 +83,6 @@ cat <<MSG
 
 Готово. Напоминание:
   - После любого изменения .env снова: php artisan config:cache
-  - Прогрев против холодного старта:
-      скопировать scripts/warmup.sh в корень проекта и добавить cron каждые 5 минут:
-      */5 * * * * /bin/bash ~/www/lek-torg.ru/app/warmup.sh
-    Подробнее: docs/02-installation.md, раздел «Медленный первый запрос»
+  - На виртуальном хостинге с LiteSpeed используйте режим PHP-FPM, а не LSAPI
+    (docs/02-installation.md, раздел «Медленные запросы на виртуальном хостинге»)
 MSG
