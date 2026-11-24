@@ -121,7 +121,7 @@ class CardController extends Controller{
      * @return Response
      */
     function cancel( CancelRequest $request ){
-        $cancel_card_operation = $this->card_operation_service->delete( $request->get('short_code'), $request->get('document_number'), $request->get('document_type') );
+        $cancel_card_operation = $this->card_operation_service->delete( $request->input('short_code'), $request->input('document_number'), $request->input('document_type') );
         if( $cancel_card_operation ){
             return response(['message' => 'Операция успешно отменена'], 204);
         }
@@ -161,11 +161,11 @@ class CardController extends Controller{
      */
     function move( MoveRequest $request ){
         $card_balances_move_result = $this->card_operation_service->move(
-            $request->get('short_code_from'),
-            $request->get('short_code_to'),
-            $request->get('document_number'),
-            $request->get('document_date'),
-            $request->get('document_type')
+            $request->input('short_code_from'),
+            $request->input('short_code_to'),
+            $request->input('document_number'),
+            $request->input('document_date'),
+            $request->input('document_type')
         );
         if( $card_balances_move_result === false ){
             return response(['message' => 'Ошибка переноса баланса'], 202);
