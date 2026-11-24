@@ -15,7 +15,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Закрытие прошлого месяца: 1-го числа в 03:00. Если месяц уже закрыт вручную — команда откажет, это нормально.
+        $schedule->command('bonus:close-month')->monthlyOn(1, '03:00')->withoutOverlapping();
     }
 
     /**

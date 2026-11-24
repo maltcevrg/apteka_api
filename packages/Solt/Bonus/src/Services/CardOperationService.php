@@ -98,31 +98,41 @@ class CardOperationService implements CardOperationInterface{
                 return false;
             }
 
-            $card_operation_to = new CardOperation([
-                'action'            => CardOperation::$move_action,
-                'document_number'   => $document_number,
-                'document_date'     => $document_date,
-                'document_type'     => $document_type,
-                'amount'            => $card_from_balance
-            ]);
-            $card_operation_to->card()->associate( $card_to ) ;
-            $card_operation_to->save();
+            // Переносим каждый кошелёк (юрлицо) отдельно и пишем по паре операций
+            // на кошелёк, чтобы срезы по юрлицам сходились с остатками.
+            foreach( $card_from->balances()->get() as $card_from_bonus_balance ){
+                $sum = (float) $card_from_bonus_balance->sum;
+                if( abs($sum) < 0.005 ){
+                    continue;
+                }
+                $legal_entity = $card_from_bonus_balance->legal_entity;
 
-            $card_operation_from = new CardOperation([
-                'action'            => CardOperation::$move_action,
-                'document_number'   => $document_number,
-                'document_date'     => $document_date,
-                'document_type'     => $document_type,
-                'amount'            => -1*$card_from_balance
-            ]);
-            $card_operation_from->card()->associate( $card_from ) ;
-            $card_operation_from->save();
+                $card_operation_to = new CardOperation([
+                    'action'            => CardOperation::$move_action,
+                    'document_number'   => $document_number,
+                    'document_date'     => $document_date,
+                    'document_type'     => $document_type,
+                    'amount'            => $sum
+                ]);
+                $card_operation_to->card()->associate( $card_to );
+                $card_operation_to->legal_entity()->associate( $legal_entity );
+                $card_operation_to->save();
 
-            foreach( $card_from->balances as $card_from_bonus_balance ){
-                $card_to_bonus_balance_service = new BonusBalanceService( $card_to, $card_from_bonus_balance->legal_entity );
-                $card_to_bonus_balance_service->changeBalance( $card_from_bonus_balance->sum );
-                $card_from_bonus_balance_service = new BonusBalanceService( $card_from, $card_from_bonus_balance->legal_entity );
-                $card_from_bonus_balance_service->changeBalance( -1*$card_from_bonus_balance->sum );
+                $card_operation_from = new CardOperation([
+                    'action'            => CardOperation::$move_action,
+                    'document_number'   => $document_number,
+                    'document_date'     => $document_date,
+                    'document_type'     => $document_type,
+                    'amount'            => -1*$sum
+                ]);
+                $card_operation_from->card()->associate( $card_from );
+                $card_operation_from->legal_entity()->associate( $legal_entity );
+                $card_operation_from->save();
+
+                $card_to_bonus_balance_service = new BonusBalanceService( $card_to, $legal_entity );
+                $card_to_bonus_balance_service->changeBalance( $sum );
+                $card_from_bonus_balance_service = new BonusBalanceService( $card_from, $legal_entity );
+                $card_from_bonus_balance_service->changeBalance( -1*$sum );
             }
             return true;
         });
