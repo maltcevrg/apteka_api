@@ -14,12 +14,6 @@ class BonusServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
-
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                \Solt\Bonus\Console\CloseMonthCommand::class,
-            ]);
-        }
     }
 
     /**

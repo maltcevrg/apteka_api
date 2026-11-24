@@ -8,8 +8,6 @@
  *  3. Открыть в браузере:
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет
  *     — выполнит миграции и пересоберёт кэши.
- *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&close=2026-10
- *     — то же плюс закрытие месяца 2026-10.
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&schedule=1
  *     — только запуск планировщика (php artisan schedule:run).
  *  4. УДАЛИТЬ public/obnovlenie.php после использования.
@@ -82,11 +80,6 @@ if (!empty($_GET['schedule'])) {
     $run('config:cache');
     $run('route:cache');
     $run('event:cache');
-
-    if (!empty($_GET['close'])) {
-        $period = preg_replace('/[^0-9-]/', '', (string) $_GET['close']);
-        $run('bonus:close-month', ['period' => $period]);
-    }
 }
 
 // Сброс OPcache, чтобы новый код и кэши подхватились сразу

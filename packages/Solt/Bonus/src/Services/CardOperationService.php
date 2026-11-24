@@ -99,7 +99,7 @@ class CardOperationService implements CardOperationInterface{
             }
 
             // Переносим каждый кошелёк (юрлицо) отдельно и пишем по паре операций
-            // на кошелёк, чтобы срезы по юрлицам сходились с остатками.
+            // на кошелёк, чтобы остатки по юрлицам сходились с журналом.
             foreach( $card_from->balances()->get() as $card_from_bonus_balance ){
                 $sum = (float) $card_from_bonus_balance->sum;
                 if( abs($sum) < 0.005 ){

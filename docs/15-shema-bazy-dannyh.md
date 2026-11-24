@@ -1,6 +1,6 @@
 # Схема базы данных
 
-Все таблицы проекта, их поля, ключи и связи. Короткое описание полей — в [docs/04](04-baza-dannyh.md), здесь — полная картина. Схемы в формате Mermaid (GitHub и большинство редакторов рисуют их сами).
+Все 5 бизнес-таблиц проекта, их поля, ключи и связи. Короткое описание полей — в [docs/04](04-baza-dannyh.md), здесь — полная картина. Схемы в формате Mermaid (GitHub и большинство редакторов рисуют их сами).
 
 ## 1. Общая картина
 
@@ -9,11 +9,9 @@ erDiagram
     legal_entities ||--o{ pharmacies : "владеет"
     legal_entities ||--o{ bonus_balances : "кошелёк"
     legal_entities ||--o{ card_operations : "от чьего имени"
-    legal_entities ||--o{ balance_snapshots : "срез по ИНН"
 
     cards ||--o{ bonus_balances : "кошельки карты"
     cards ||--o{ card_operations : "журнал"
-    cards ||--o{ balance_snapshots : "срез по карте"
 
     pharmacies ||--o{ card_operations : "где пробили чек"
 
@@ -63,25 +61,7 @@ erDiagram
         string document_number
         string document_type
         decimal amount "со знаком"
-        date closed_period "в какой срез вошла"
-        date cancel_closed_period "в какой срез вошла отмена"
         datetime deleted_at "= отмена"
-    }
-    balance_snapshots {
-        bigint id PK
-        date period "1-е число месяца"
-        bigint card_id FK
-        bigint legal_entity_id FK
-        decimal opening
-        decimal increased
-        decimal decreased
-        decimal returned_increase
-        decimal returned_decrease
-        decimal moved
-        decimal cancelled_increase
-        decimal cancelled_decrease
-        decimal cancelled_other
-        decimal closing
     }
 ```
 
@@ -148,22 +128,9 @@ erDiagram
 | `document_number` | varchar | индекс; вместе с `document_type` и картой идентифицирует чек при отмене |
 | `document_type` | varchar | |
 | `amount` | decimal(8,2) | со знаком: начисление `+`, списание `−`, возврат начисления `−`, возврат списания `+`, перенос `−` на источнике и `+` на приёмнике |
-| `closed_period` | date, NULL | первое число месяца, в срез которого вошла операция |
-| `cancel_closed_period` | date, NULL | первое число месяца, в срез которого вошла её отмена |
 | `deleted_at` | datetime, NULL | заполнено — операция отменена; дата отмены |
 
-Индексы: `(card_id, legal_entity_id)`, `document_number`, `(closed_period, document_date)`, `(cancel_closed_period, deleted_at)`.
-
-**`balance_snapshots` — срезы на конец месяца.** Одна строка на *месяц × карта × юрлицо*. Строится из `card_operations` командой `bonus:close-month`, после записи не меняется. Подробно — [docs/14](14-zakrytie-mesyatsa.md).
-
-| Поле | Тип | Примечание |
-|:--|:--|:--|
-| `period` | date | первое число месяца |
-| `card_id` | bigint FK → cards | |
-| `legal_entity_id` | bigint FK, NULL | NULL — строка со старыми переносами без юрлица |
-| `opening` … `closing` | decimal(12,2) | сальдо и обороты, формула в docs/14 |
-
-Уникальный ключ `(period, card_id, legal_entity_id)`, индекс `(period, legal_entity_id)`.
+Индексы: `(card_id, legal_entity_id)`, `document_number`.
 
 ### 2.3. Служебные таблицы Laravel / Passport
 
@@ -193,9 +160,6 @@ flowchart LR
     subgraph История
         OP[card_operations<br/>журнал чеков]
     end
-    subgraph Отчётность
-        SN[balance_snapshots<br/>срез за месяц]
-    end
 
     LE --> PH
     PH -->|чек пробит в| OP
@@ -204,8 +168,6 @@ flowchart LR
     OP -->|каждая операция<br/>сразу меняет| BB
     C --> BB
     LE --> BB
-    OP -->|раз в месяц<br/>bonus:close-month| SN
-    SN -.->|контроль:<br/>должно сходиться| BB
 ```
 
 Читать так:
@@ -213,7 +175,7 @@ flowchart LR
 1. Касса присылает чек: карта (`cards`), аптека (`pharmacies`) и её юрлицо (`legal_entities`) определяют, **кому** и **от кого** движение.
 2. Чек записывается строкой в **`card_operations`** и в той же транзакции меняет `sum` в **`bonus_balances`** у кошелька *эта карта + это юрлицо*.
 3. Баланс карты для кассы — сумма её кошельков в `bonus_balances`.
-4. Раз в месяц журнал сворачивается в **`balance_snapshots`**. Срез считается только из журнала, поэтому его можно сверить с `bonus_balances` — если не сходится, значит, журнал и остатки где-то разошлись.
+4. В норме сумма активных операций по кошельку равна `sum` этого кошелька — это инвариант, по которому можно проверять данные.
 
 ## 4. Кардинальности
 
@@ -225,7 +187,6 @@ flowchart LR
 | карта → операции | 1 : много |
 | аптека → операции | 1 : много |
 | юрлицо → операции | 1 : много |
-| карта + юрлицо + месяц → срез | 1 : 1 |
 
 Внешние ключи без каскадного удаления: удалить карту или юрлицо, по которым есть операции, база не даст. Удаление в проекте везде мягкое (`deleted_at`).
 
@@ -236,5 +197,4 @@ flowchart LR
 | Сколько бонусов на карте сейчас | `SUM(bonus_balances.sum)` по карте |
 | Сколько бонусов юрлица на карте сейчас | `bonus_balances.sum` кошелька |
 | Что происходило по карте | `card_operations` (включая `deleted_at` — отменённые) |
-| Остаток/обороты на конец закрытого месяца | `balance_snapshots` |
-| Остаток на произвольную дату в прошлом | ближайший срез до даты + операции из `card_operations` от среза до даты |
+| Остаток на произвольную дату в прошлом | сумма `amount` операций карты с `document_date` до даты (с учётом отмен) |
