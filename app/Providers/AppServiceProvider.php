@@ -26,6 +26,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        // Дробные числа в JSON печатаются кратко (248.51, а не 248.50999999999999)
+        // независимо от php.ini хостинга.
+        ini_set('serialize_precision', '-1');
+        ini_set('precision', '14');
     }
 }

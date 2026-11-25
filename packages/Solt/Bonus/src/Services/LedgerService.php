@@ -69,7 +69,8 @@ class LedgerService
     /**
      * Записать операцию с нарастающим итогом.
      *
-     * @param array $document  document_date, document_number, document_type
+     * @param array $document  document_date, document_number, document_type,
+     *                         offline (bool), amount_requested (если списано частично)
      */
     public static function append(
         Card $card,
@@ -88,6 +89,8 @@ class LedgerService
             'document_number' => $document['document_number'],
             'document_type'   => $document['document_type'],
             'amount'          => round($amount, 2),
+            'offline'         => !empty($document['offline']),
+            'amount_requested' => isset($document['amount_requested']) ? round((float) $document['amount_requested'], 2) : null,
         ]);
         $operation->card()->associate($card);
         if ($legalEntity !== null) {

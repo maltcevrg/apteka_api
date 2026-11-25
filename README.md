@@ -58,6 +58,8 @@ API будет доступно по адресу `http://localhost:8000/api/v1`
 - [Подключение из 1С 7.7](docs/11-podklyuchenie-iz-1c.md)
 - [Переезд на VPS](docs/12-pereezd-na-vps.md)
 - [Схема базы данных](docs/15-shema-bazy-dannyh.md)
+- [Полное описание таблиц, схема БД и логика журнала](docs/18-polnoe-opisanie-bd-i-logiki.md)
+- [Проект: работа касс без интернета](docs/19-rabota-bez-interneta.md)
 - [Проект: журнал как единственный источник баланса](docs/16-proekt-perehoda-na-zhurnal.md)
 - [План перехода на журнал](docs/17-plan-perehoda-na-zhurnal.md)
 - [База данных](docs/04-baza-dannyh.md)

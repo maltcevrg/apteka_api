@@ -75,6 +75,20 @@ class LedgerTest extends TestCase
         $this->assertSame([], LedgerService::checkCard($this->card->id));
     }
 
+    public function test_amounts_are_rounded_to_kopecks()
+    {
+        $this->postJson(route('api.bonus.increase.store'), $this->payload($this->pharmacyA, '10.005'))
+            ->assertStatus(201)->assertJson(['amount' => 10.01, 'balance_after' => 10.01]);
+        $this->postJson(route('api.bonus.increase.store'), $this->payload($this->pharmacyA, '0.123'))
+            ->assertStatus(201)->assertJson(['amount' => 0.12, 'balance_after' => 10.13]);
+
+        $raw = DB::table('card_operations')->where('card_id', $this->card->id)->orderBy('id')->get();
+        $this->assertSame(['10.01', '0.12'], $raw->pluck('amount')->map(fn ($v) => (string) $v)->all());
+        $this->assertSame(['10.01', '10.13'], $raw->pluck('card_after')->map(fn ($v) => (string) $v)->all());
+
+        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => 10.13]);
+    }
+
     public function test_card_legal_entity_is_set_by_first_operation()
     {
         $this->postJson(route('api.bonus.increase.store'), $this->payload($this->pharmacyB, '10'))->assertStatus(201);

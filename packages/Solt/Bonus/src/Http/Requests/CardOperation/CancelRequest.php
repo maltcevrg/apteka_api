@@ -19,6 +19,7 @@ class CancelRequest extends FormRequest{
             'document_date'     => ['required', 'date'],
             'document_number'   => ['required', 'string', 'max:12', 'exists:card_operations,document_number'],
             'document_type'     => ['required', 'string', 'max:40'],
+            'offline'           => ['sometimes', 'boolean'],
         ];
     }
 

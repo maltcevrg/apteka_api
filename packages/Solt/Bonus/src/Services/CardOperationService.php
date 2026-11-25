@@ -37,10 +37,17 @@ class CardOperationService implements CardOperationInterface{
             // Блокируем строку карты: все операции по одной карте выполняются
             // последовательно, и остаток читается уже под блокировкой.
             $card = Card::findByShortCode( $data['short_code'], true );
-            $amount = (float) $data['amount'];
+            $amount = round((float) $data['amount'], 2);
+            $offline = !empty($data['offline']);
 
             if( $card->getBalance() + $amount < 0 ){
-                return false;
+                if( !$offline ){
+                    return false;
+                }
+                // Офлайн-списание: касса уже дала скидку без связи, отказать нельзя.
+                // Списываем сколько есть — баланс становится 0, запрошенная сумма сохраняется.
+                $data['amount_requested'] = $amount;
+                $amount = -1 * $card->getBalance();
             }
 
             $card_operation = LedgerService::append(
@@ -61,8 +68,8 @@ class CardOperationService implements CardOperationInterface{
      * на исходную; исходная помечается deleted_at («погашена»).
      * @inheritcod
      */
-    function delete( String $short_code, String $document_number, String $document_type ) : Bool {
-        return DB::transaction(function () use ($short_code, $document_number, $document_type) {
+    function delete( String $short_code, String $document_number, String $document_type, bool $offline = false ) : Bool {
+        return DB::transaction(function () use ($short_code, $document_number, $document_type, $offline) {
             $card = Card::findByShortCode( $short_code, true );
             if( empty( $card ) ){
                 return false;
@@ -72,8 +79,14 @@ class CardOperationService implements CardOperationInterface{
                 return false;
             }
             $amount = -1 * (float) $original->amount;
+            $amount_requested = null;
             if( $card->getBalance() + $amount < 0 ){
-                return false;
+                if( !$offline ){
+                    return false;
+                }
+                // Офлайн-отмена начисления, которое уже потратили: снимаем сколько есть, баланс 0.
+                $amount_requested = $amount;
+                $amount = -1 * $card->getBalance();
             }
 
             LedgerService::append(
@@ -86,6 +99,8 @@ class CardOperationService implements CardOperationInterface{
                     'document_date'   => now()->format('Y-m-d'),
                     'document_number' => $original->document_number,
                     'document_type'   => $original->document_type,
+                    'offline'         => $offline,
+                    'amount_requested' => $amount_requested,
                 ],
                 $original
             );

@@ -24,6 +24,8 @@ class CardOperationResource extends JsonResource
             'document_number'   => $this->document_number,
             'document_type'     => $this->document_type,
             'amount'            => $this->amount,
+            'amount_requested'  => $this->amount_requested,
+            'offline'           => (bool) $this->offline,
             'balance_after'     => $this->card_after
         ];
     }
