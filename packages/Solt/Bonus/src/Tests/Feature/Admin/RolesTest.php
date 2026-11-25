@@ -22,6 +22,8 @@ class RolesTest extends TestCase
 
     public function test_first_login_sets_password_and_validates_it()
     {
+        // в тесте много попыток подряд — лимит попыток входа отключаем
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
         $this->artisan('bonus:admin', ['login' => 'boss'])->assertSuccessful();
         $boss = User::where('login', 'boss')->firstOrFail();
         $this->assertTrue($boss->needsPassword());
