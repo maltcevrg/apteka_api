@@ -13,6 +13,8 @@ class BonusServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
+        $this->loadRoutesFrom(__DIR__ . '/../routes/admin.php');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'bonus');
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
 
         // Без проверки runningInConsole(): команды должны быть доступны
@@ -20,6 +22,7 @@ class BonusServiceProvider extends ServiceProvider
         $this->commands([
             \Solt\Bonus\Console\LedgerCheckCommand::class,
             \Solt\Bonus\Console\ImportCommand::class,
+            \Solt\Bonus\Console\AdminUserCommand::class,
         ]);
     }
 
