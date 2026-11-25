@@ -4,7 +4,8 @@
 <h1>Юрлица</h1>
 <div class="card">
   <table>
-    <thead><tr><th>ИНН</th><th>Название</th><th class="num">Аптек</th><th class="num">Карт (владелец)</th><th></th></tr></thead>
+    @php($canEdit = auth()->user()->canEdit())
+    <thead><tr><th>ИНН</th><th>Название</th><th class="num">Аптек</th><th class="num">Карт (владелец)</th>@if ($canEdit)<th></th>@endif</tr></thead>
     <tbody>
     @forelse ($legal_entities as $le)
       <tr>
@@ -12,6 +13,7 @@
         <td>{{ $le->name }}</td>
         <td class="num">{{ $pharmacy_counts[$le->id] ?? 0 }}</td>
         <td class="num">{{ $card_counts[$le->id] ?? 0 }}</td>
+        @if ($canEdit)
         <td style="text-align:right;">
           @if (($pharmacy_counts[$le->id] ?? 0) > 0)
             <span class="muted" title="Сначала переведите аптеки на другое юрлицо">есть аптеки</span>
@@ -22,6 +24,7 @@
             </form>
           @endif
         </td>
+        @endif
       </tr>
     @empty
       <tr><td colspan="5" class="muted">Юрлиц нет.</td></tr>
@@ -30,6 +33,7 @@
   </table>
 </div>
 
+@if ($canEdit)
 <div class="card">
   <h2 style="margin-top:0;">Добавить юрлицо</h2>
   <form method="post" action="{{ route('admin.legal-entities.store') }}" class="row">
@@ -39,6 +43,7 @@
     <button class="btn" type="submit">Добавить</button>
   </form>
 </div>
+@endif
 
 <p class="muted">Удалить можно только юрлицо без аптек. Карты и операции удалённого юрлица остаются в журнале и в отчётах.</p>
 @endsection

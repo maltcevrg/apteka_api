@@ -22,10 +22,12 @@
 <div class="card">
   <h2 style="margin-top:0;">Разделы</h2>
   <ul>
-    <li><a href="{{ route('admin.pharmacies') }}">Аптеки</a> — добавление, удаление, смена ИНН (юрлица).</li>
-    <li><a href="{{ route('admin.legal-entities') }}">Юрлица</a> — добавление и удаление.</li>
-    <li><a href="{{ route('admin.import') }}">Загрузка из 1С</a> — справочники и карты с остатками из CSV.</li>
+    <li><a href="{{ route('admin.pharmacies') }}">Аптеки</a>{{ auth()->user()->canEdit() ? ' — добавление, удаление, смена ИНН (юрлица).' : ' — просмотр.' }}</li>
+    <li><a href="{{ route('admin.legal-entities') }}">Юрлица</a>{{ auth()->user()->canEdit() ? ' — добавление и удаление.' : ' — просмотр.' }}</li>
+    @if (auth()->user()->canEdit())<li><a href="{{ route('admin.import') }}">Загрузка из 1С</a> — справочники и карты с остатками из CSV.</li>@endif
     <li><a href="{{ route('admin.reports') }}">Отчёты</a> — выбор периода; состав отчётов — по отдельному ТЗ.</li>
+    @if (auth()->user()->isAdmin())<li><a href="{{ route('admin.users') }}">Пользователи</a> — учётные записи и роли.</li>@endif
+    <li><a href="{{ route('admin.password.change') }}">Сменить свой пароль</a>.</li>
   </ul>
 </div>
 @endsection
