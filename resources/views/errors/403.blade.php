@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('code', '403')
+@section('title', 'Доступ закрыт')
+@section('message', 'У вас нет прав для просмотра этой страницы.')
+@section('hint', 'Если это админ-панель — войдите под своим логином')
