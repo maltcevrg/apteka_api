@@ -76,10 +76,53 @@ class AdminPanelTest extends TestCase
         $this->actingAs($user)->post("/admin/pharmacies/{$ph->id}/legal-entity", ['legal_entity_id' => $leB->id])
             ->assertSessionHas('info');
 
-        // добавить юрлицо
+    }
+
+    public function test_create_and_delete_pharmacy()
+    {
+        $user = $this->admin();
+        $le = LegalEntity::factory()->create();
+
+        $this->actingAs($user)->post('/admin/pharmacies', ['number' => 7, 'name' => 'Новая', 'legal_entity_id' => $le->id])
+            ->assertSessionHas('success');
+        $ph = Pharmacy::where('number', 7)->firstOrFail();
+
+        // дубль номера — ошибка
+        $this->actingAs($user)->post('/admin/pharmacies', ['number' => 7, 'name' => 'Ещё', 'legal_entity_id' => $le->id])
+            ->assertSessionHasErrors();
+
+        $this->actingAs($user)->delete("/admin/pharmacies/{$ph->id}")->assertSessionHas('success');
+        $this->assertSoftDeleted('pharmacies', ['id' => $ph->id]);
+
+        // тот же номер снова — восстанавливается та же запись
+        $this->actingAs($user)->post('/admin/pharmacies', ['number' => 7, 'name' => 'Снова', 'legal_entity_id' => $le->id])
+            ->assertSessionHas('success');
+        $this->assertSame(1, Pharmacy::withTrashed()->where('number', 7)->count());
+        $this->assertSame('Снова', $ph->fresh()->name);
+    }
+
+    public function test_create_and_delete_legal_entity()
+    {
+        $user = $this->admin();
+
+        $this->actingAs($user)->get('/admin/legal-entities')->assertOk();
         $this->actingAs($user)->post('/admin/legal-entities', ['inn' => '5410125764', 'name' => 'ООО Новое'])
             ->assertSessionHas('success');
-        $this->assertDatabaseHas('legal_entities', ['inn' => '5410125764', 'name' => 'ООО Новое']);
+        $le = LegalEntity::where('inn', '5410125764')->firstOrFail();
+
+        $this->actingAs($user)->post('/admin/legal-entities', ['inn' => '5410125764', 'name' => 'Дубль'])
+            ->assertSessionHasErrors();
+        $this->actingAs($user)->post('/admin/legal-entities', ['inn' => '123', 'name' => 'Плохой ИНН'])
+            ->assertSessionHasErrors();
+
+        // с аптеками удалить нельзя
+        $ph = Pharmacy::factory()->create(['legal_entity_id' => $le->id]);
+        $this->actingAs($user)->delete("/admin/legal-entities/{$le->id}")->assertSessionHasErrors();
+        $this->assertNull($le->fresh()->deleted_at);
+
+        $ph->delete();
+        $this->actingAs($user)->delete("/admin/legal-entities/{$le->id}")->assertSessionHas('success');
+        $this->assertSoftDeleted('legal_entities', ['id' => $le->id]);
     }
 
     public function test_import_original_1c_files_in_cp1251()

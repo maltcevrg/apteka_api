@@ -32,6 +32,7 @@
   .btn { font:inherit; padding:7px 14px; border-radius:5px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; text-decoration:none; display:inline-block; }
   .btn.secondary { background:#fff; color:var(--accent); }
   .btn.small { padding:4px 10px; font-size:13px; }
+  .btn.danger { background:#fff; color:var(--err); border-color:#f5b5ae; }
   .row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
   .field { display:flex; flex-direction:column; gap:4px; }
   .field label { font-size:13px; color:var(--muted); }
@@ -52,6 +53,7 @@
   <nav>
     <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Обзор</a>
     <a href="{{ route('admin.pharmacies') }}" class="{{ request()->routeIs('admin.pharmacies*') ? 'active' : '' }}">Аптеки</a>
+    <a href="{{ route('admin.legal-entities') }}" class="{{ request()->routeIs('admin.legal-entities*') ? 'active' : '' }}">Юрлица</a>
     <a href="{{ route('admin.import') }}" class="{{ request()->routeIs('admin.import*') ? 'active' : '' }}">Загрузка из 1С</a>
     <a href="{{ route('admin.reports') }}" class="{{ request()->routeIs('admin.reports*') ? 'active' : '' }}">Отчёты</a>
   </nav>

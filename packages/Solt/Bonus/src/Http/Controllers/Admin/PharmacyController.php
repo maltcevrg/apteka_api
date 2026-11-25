@@ -8,7 +8,7 @@ use Solt\Bonus\Models\LegalEntity;
 use Solt\Bonus\Models\Pharmacy;
 
 /**
- * Аптеки: список и смена юрлица (ИНН).
+ * Аптеки: список, добавление, удаление, смена юрлица (ИНН).
  */
 class PharmacyController extends Controller
 {
@@ -18,6 +18,34 @@ class PharmacyController extends Controller
             'pharmacies'     => Pharmacy::with('legal_entity')->orderBy('number')->get(),
             'legal_entities' => LegalEntity::orderBy('name')->get(),
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'number'          => ['required', 'integer', 'between:0,99'],
+            'name'            => ['required', 'string', 'max:255'],
+            'legal_entity_id' => ['required', 'integer', 'exists:legal_entities,id,deleted_at,NULL'],
+        ]);
+
+        if (Pharmacy::where('number', $data['number'])->exists()) {
+            return back()->withInput()->withErrors(["Аптека с номером {$data['number']} уже есть"]);
+        }
+
+        // Если такая аптека была удалена раньше — восстанавливаем ту же запись
+        $pharmacy = Pharmacy::withTrashed()->firstOrNew(['number' => $data['number']]);
+        $pharmacy->name = $data['name'];
+        $pharmacy->legal_entity()->associate(LegalEntity::findOrFail($data['legal_entity_id']));
+        $pharmacy->deleted_at = null;
+        $pharmacy->save();
+
+        return back()->with('success', "Аптека {$pharmacy->number} «{$pharmacy->name}» добавлена");
+    }
+
+    public function destroy(Pharmacy $pharmacy)
+    {
+        $pharmacy->delete();
+        return back()->with('success', "Аптека {$pharmacy->number} «{$pharmacy->name}» удалена. Её чеки в журнале сохранены.");
     }
 
     public function updateLegalEntity(Request $request, Pharmacy $pharmacy)
@@ -36,20 +64,5 @@ class PharmacyController extends Controller
         $pharmacy->save();
 
         return back()->with('success', "Аптека {$pharmacy->number} «{$pharmacy->name}»: ИНН {$old} → {$le->inn} ({$le->name})");
-    }
-
-    public function storeLegalEntity(Request $request)
-    {
-        $data = $request->validate([
-            'inn'  => ['required', 'regex:/^[0-9]{10,12}$/'],
-            'name' => ['required', 'string', 'max:255'],
-        ]);
-
-        $le = LegalEntity::withTrashed()->firstOrNew(['inn' => $data['inn']]);
-        $le->name = $data['name'];
-        $le->deleted_at = null;
-        $le->save();
-
-        return back()->with('success', "Юрлицо {$le->inn} «{$le->name}» сохранено");
     }
 }

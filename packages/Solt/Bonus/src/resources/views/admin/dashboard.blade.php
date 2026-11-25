@@ -22,7 +22,8 @@
 <div class="card">
   <h2 style="margin-top:0;">Разделы</h2>
   <ul>
-    <li><a href="{{ route('admin.pharmacies') }}">Аптеки</a> — смена ИНН (юрлица) у аптеки, добавление юрлица.</li>
+    <li><a href="{{ route('admin.pharmacies') }}">Аптеки</a> — добавление, удаление, смена ИНН (юрлица).</li>
+    <li><a href="{{ route('admin.legal-entities') }}">Юрлица</a> — добавление и удаление.</li>
     <li><a href="{{ route('admin.import') }}">Загрузка из 1С</a> — справочники и карты с остатками из CSV.</li>
     <li><a href="{{ route('admin.reports') }}">Отчёты</a> — выбор периода; состав отчётов — по отдельному ТЗ.</li>
   </ul>
