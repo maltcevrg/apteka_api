@@ -27,6 +27,7 @@ class ImportController extends Controller
         ]);
 
         $cardFiles = [];
+        $names = [];
         $errors = [];
         foreach ($request->file('cards', []) as $file) {
             $inn = $request->input('inn') ?: ImportService::innFromFilename($file->getClientOriginalName());
@@ -35,6 +36,7 @@ class ImportController extends Controller
                 continue;
             }
             $cardFiles[$inn] = $file->getRealPath();
+            $names[$file->getRealPath()] = $file->getClientOriginalName();
         }
 
         if (!$request->hasFile('legal_entities') && !$request->hasFile('pharmacies') && !$cardFiles) {
@@ -46,7 +48,8 @@ class ImportController extends Controller
                 $request->hasFile('legal_entities') ? $request->file('legal_entities')->getRealPath() : null,
                 $request->hasFile('pharmacies') ? $request->file('pharmacies')->getRealPath() : null,
                 $cardFiles,
-                $request->input('date') ?: null
+                $request->input('date') ?: null,
+                $names
             );
         } catch (\Throwable $e) {
             return back()->withErrors(array_merge($errors, ['Ошибка загрузки, ничего не записано: ' . $e->getMessage()]));

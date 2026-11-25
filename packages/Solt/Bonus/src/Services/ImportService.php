@@ -34,6 +34,9 @@ class ImportService
     /** @var array{legal_entities:int, pharmacies:int, cards:int, openings:int, skipped:string[], log:string[]} */
     public array $stats;
 
+    /** @var array<string,string> путь => отображаемое имя */
+    private array $names = [];
+
     public function __construct()
     {
         $this->reset();
@@ -68,9 +71,11 @@ class ImportService
      * Загрузить набор файлов в одной транзакции.
      *
      * @param array<string,string> $cardFiles  ИНН => путь к файлу карт
+     * @param array<string,string> $names      путь => отображаемое имя файла (для загрузок из браузера)
      */
-    public function import(?string $legalEntitiesFile, ?string $pharmaciesFile, array $cardFiles, ?string $date = null): array
+    public function import(?string $legalEntitiesFile, ?string $pharmaciesFile, array $cardFiles, ?string $date = null, array $names = []): array
     {
+        $this->names = $names;
         $date = $date ? Carbon::parse($date)->format('Y-m-d') : now()->format('Y-m-d');
 
         DB::transaction(function () use ($legalEntitiesFile, $pharmaciesFile, $cardFiles, $date) {
@@ -168,7 +173,7 @@ class ImportService
     {
         $le = LegalEntity::where('inn', $inn)->first();
         if (!$le) {
-            $this->stats['skipped'][] = basename($file) . ": юрлицо с ИНН {$inn} не найдено — файл пропущен";
+            $this->stats['skipped'][] = $this->displayName($file) . ": юрлицо с ИНН {$inn} не найдено — файл пропущен";
             return;
         }
         $n = 0;
@@ -206,7 +211,12 @@ class ImportService
                 $this->stats['openings']++;
             }
         }
-        $this->stats['log'][] = basename($file) . " (ИНН {$inn}): {$n} карт";
+        $this->stats['log'][] = $this->displayName($file) . " (ИНН {$inn}): {$n} карт";
+    }
+
+    private function displayName(string $file): string
+    {
+        return $this->names[$file] ?? basename($file);
     }
 
     public static function cleanInn(string $inn): string
