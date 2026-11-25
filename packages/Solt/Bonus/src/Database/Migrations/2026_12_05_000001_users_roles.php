@@ -16,8 +16,6 @@ return new class extends Migration
             $table->string('password')->nullable()->change();
             $table->timestamp('last_login_at')->nullable()->after('remember_token');
         });
-        // Все, кто был создан до ролей (командой bonus:admin), — администраторы
-        \Illuminate\Support\Facades\DB::table('users')->update(['role' => 'admin']);
     }
 
     public function down(): void

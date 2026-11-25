@@ -72,4 +72,4 @@
 | Команда | `Console/AdminUserCommand.php` — `bonus:admin` |
 | Тесты | `Tests/Feature/Admin/AdminPanelTest.php`, `RolesTest.php` |
 
-Выкладка на хостинг: файлы из `main` + `obnovlenie.php?key=…` (миграции, кэши), затем `…&admin=логин` и первый вход на `/admin/login`. Для сессий нужна запись в `storage/framework/sessions` (как и для кэшей — уже есть).
+Выкладка на хостинг: файлы из `main` + `obnovlenie.php?key=…` (миграции, кэши), затем `…&admin=логин` и первый вход на `/admin/login`. Пользователи, созданные до появления ролей, роль автоматически не получают (остаются «пользователь») — администратора назначает `…&admin=логин`. Для сессий нужна запись в `storage/framework/sessions` (как и для кэшей — уже есть).
