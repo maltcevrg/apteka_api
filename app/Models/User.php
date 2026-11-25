@@ -39,6 +39,14 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            $user->name = $user->name ?: $user->login;
+            $user->role = $user->role ?: self::ROLE_USER;
+        });
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;

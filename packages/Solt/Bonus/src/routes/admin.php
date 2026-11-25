@@ -21,7 +21,7 @@ Route::group(['prefix' => '/admin', 'middleware' => ['web'], 'as' => 'admin.'], 
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.post');
     Route::get('/password/setup', [AuthController::class, 'showSetup'])->name('password.setup');
-    Route::post('/password/setup', [AuthController::class, 'setup'])->middleware('throttle:10,1')->name('password.setup.post');
+    Route::post('/password/setup', [AuthController::class, 'setup'])->middleware('throttle:30,1')->name('password.setup.post');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::group(['middleware' => [AdminAuth::class]], function () {
