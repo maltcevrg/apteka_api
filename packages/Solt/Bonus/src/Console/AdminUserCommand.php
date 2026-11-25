@@ -6,36 +6,45 @@ use App\Models\User;
 use Illuminate\Console\Command;
 
 /**
- * Создать или обновить пользователя админ-панели.
- *   php artisan bonus:admin admin "пароль"
+ * Создать администратора админ-панели или сбросить ему пароль.
+ *   php artisan bonus:admin admin            — создать (или сбросить пароль): пароль задаётся при первом входе
+ *   php artisan bonus:admin admin "пароль"   — сразу с паролем
  */
 class AdminUserCommand extends Command
 {
-    protected $signature = 'bonus:admin {login : Логин} {password : Пароль (не короче 8 символов)}';
+    protected $signature = 'bonus:admin {login : Логин} {password? : Пароль; если не указан — задаётся при первом входе}';
 
-    protected $description = 'Создать/обновить пользователя админ-панели (логин + пароль)';
+    protected $description = 'Создать администратора админ-панели / сбросить пароль';
 
     public function handle(): int
     {
         $login = trim($this->argument('login'));
-        $password = (string) $this->argument('password');
+        $password = $this->argument('password');
 
         if ($login === '' || !preg_match('/^[a-zA-Z0-9_.@-]{2,64}$/', $login)) {
             $this->error('Логин: латинские буквы, цифры, . _ @ -, от 2 до 64 символов');
             return self::FAILURE;
         }
-        if (mb_strlen($password) < 8) {
-            $this->error('Пароль не короче 8 символов');
-            return self::FAILURE;
+        if ($password !== null && $password !== '') {
+            $v = validator(['password' => $password, 'password_confirmation' => $password], ['password' => User::passwordRules()]);
+            if ($v->fails()) {
+                $this->error(User::passwordRulesMessage());
+                return self::FAILURE;
+            }
+        } else {
+            $password = null;
         }
 
         $user = User::firstOrNew(['login' => $login]);
         $isNew = !$user->exists;
         $user->name = $user->name ?: $login;
-        $user->password = $password; // cast 'hashed'
+        $user->role = User::ROLE_ADMIN;
+        $user->password = $password; // null → задаст при первом входе
+        $user->remember_token = null;
         $user->save();
 
-        $this->info(($isNew ? 'Создан' : 'Обновлён') . " пользователь «{$login}». Вход: /admin/login");
+        $this->info(($isNew ? 'Создан администратор' : 'Обновлён администратор') . " «{$login}». "
+            . ($password === null ? 'Пароль будет задан при первом входе: /admin/login' : 'Вход: /admin/login'));
         return self::SUCCESS;
     }
 }

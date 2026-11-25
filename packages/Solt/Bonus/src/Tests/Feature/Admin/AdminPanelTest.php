@@ -51,9 +51,9 @@ class AdminPanelTest extends TestCase
     public function test_admin_command_updates_password_and_validates()
     {
         $this->admin();
-        $this->artisan('bonus:admin', ['login' => 'admin', 'password' => 'another-pass'])->assertSuccessful();
+        $this->artisan('bonus:admin', ['login' => 'admin', 'password' => 'another-pass1'])->assertSuccessful();
         $this->assertSame(1, User::count());
-        $this->post('/admin/login', ['login' => 'admin', 'password' => 'another-pass'])->assertRedirect('/admin');
+        $this->post('/admin/login', ['login' => 'admin', 'password' => 'another-pass1'])->assertRedirect('/admin');
 
         $this->artisan('bonus:admin', ['login' => 'x', 'password' => 'short'])->assertFailed();
     }

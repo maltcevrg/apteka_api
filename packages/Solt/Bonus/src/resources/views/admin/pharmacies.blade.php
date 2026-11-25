@@ -4,7 +4,8 @@
 <h1>Аптеки</h1>
 <div class="card">
   <table>
-    <thead><tr><th>№</th><th>Название</th><th>Текущий ИНН</th><th>Юрлицо</th><th style="width:400px;">Сменить ИНН</th><th></th></tr></thead>
+    @php($canEdit = auth()->user()->canEdit())
+    <thead><tr><th>№</th><th>Название</th><th>Текущий ИНН</th><th>Юрлицо</th>@if ($canEdit)<th style="width:400px;">Сменить ИНН</th><th></th>@endif</tr></thead>
     <tbody>
     @forelse ($pharmacies as $ph)
       <tr>
@@ -12,6 +13,7 @@
         <td>{{ $ph->name }}</td>
         <td><code>{{ $ph->legal_entity?->inn }}</code></td>
         <td>{{ $ph->legal_entity?->name }}</td>
+        @if ($canEdit)
         <td>
           <form method="post" action="{{ route('admin.pharmacies.legal-entity', $ph) }}" class="row" style="gap:6px;">
             @csrf
@@ -29,6 +31,7 @@
             <button class="btn small danger" type="submit">Удалить</button>
           </form>
         </td>
+        @endif
       </tr>
     @empty
       <tr><td colspan="6" class="muted">Аптек нет — добавьте ниже или загрузите справочник на странице «Загрузка из 1С».</td></tr>
@@ -37,6 +40,7 @@
   </table>
 </div>
 
+@if ($canEdit)
 <div class="card">
   <h2 style="margin-top:0;">Добавить аптеку</h2>
   <form method="post" action="{{ route('admin.pharmacies.store') }}" class="row">
@@ -54,6 +58,7 @@
   </form>
   @if ($legal_entities->isEmpty())<p class="muted">Сначала добавьте хотя бы одно <a href="{{ route('admin.legal-entities') }}">юрлицо</a>.</p>@endif
 </div>
+@endif
 
 <p class="muted">Смена ИНН и удаление влияют только на новые операции: уже записанные чеки хранят свою аптеку и юрлицо. Удалённую аптеку можно завести снова с тем же номером.</p>
 @endsection

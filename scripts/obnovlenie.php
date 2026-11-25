@@ -17,8 +17,10 @@
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&import=1
  *     — загрузить справочники и карты с остатками из database/import (bonus:import).
  *       Можно сочетать: &fresh=1&force=1&import=1 — чистая база с тестовыми данными.
- *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&admin=логин&password=пароль
- *     — создать/обновить пользователя админ-панели (/admin/login), пароль от 8 символов.
+ *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&admin=логин
+ *     — создать администратора админ-панели (или сбросить ему пароль):
+ *       пароль он задаст сам при первом входе на /admin/login.
+ *       Можно сразу с паролем: &admin=логин&password=пароль (латиница и цифры, от 8 символов).
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&schedule=1
  *     — только запуск планировщика (php artisan schedule:run).
  *  4. УДАЛИТЬ public/obnovlenie.php после использования.
@@ -133,7 +135,11 @@ if (!empty($_GET['schedule'])) {
     $run('bonus:import');
 } elseif (!empty($_GET['admin'])) {
     $run('migrate', ['--force' => true]);
-    $run('bonus:admin', ['login' => (string) $_GET['admin'], 'password' => (string) ($_GET['password'] ?? '')]);
+    $params = ['login' => (string) $_GET['admin']];
+    if (!empty($_GET['password'])) {
+        $params['password'] = (string) $_GET['password'];
+    }
+    $run('bonus:admin', $params);
 } else {
     $run('migrate', ['--force' => true]);
     $run('config:cache');

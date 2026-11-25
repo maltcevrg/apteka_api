@@ -54,11 +54,16 @@
     <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Обзор</a>
     <a href="{{ route('admin.pharmacies') }}" class="{{ request()->routeIs('admin.pharmacies*') ? 'active' : '' }}">Аптеки</a>
     <a href="{{ route('admin.legal-entities') }}" class="{{ request()->routeIs('admin.legal-entities*') ? 'active' : '' }}">Юрлица</a>
+    @if (auth()->user()->canEdit())
     <a href="{{ route('admin.import') }}" class="{{ request()->routeIs('admin.import*') ? 'active' : '' }}">Загрузка из 1С</a>
+    @endif
     <a href="{{ route('admin.reports') }}" class="{{ request()->routeIs('admin.reports*') ? 'active' : '' }}">Отчёты</a>
+    @if (auth()->user()->isAdmin())
+    <a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users*') ? 'active' : '' }}">Пользователи</a>
+    @endif
   </nav>
   <div class="user">
-    <span>{{ auth()->user()->login ?? auth()->user()->name }}</span>
+    <a href="{{ route('admin.password.change') }}" title="Сменить пароль" style="color:#cbd2d9; text-decoration:none;">{{ auth()->user()->login }} <span class="muted" style="font-size:12px;">({{ auth()->user()->roleName() }})</span></a>
     <form method="post" action="{{ route('admin.logout') }}">@csrf<button type="submit">Выйти</button></form>
   </div>
 </header>

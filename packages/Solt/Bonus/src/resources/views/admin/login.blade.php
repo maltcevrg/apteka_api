@@ -11,7 +11,8 @@
     </div>
     <div class="field" style="margin-bottom:16px;">
       <label for="password">Пароль</label>
-      <input type="password" id="password" name="password" autocomplete="current-password" required>
+      <input type="password" id="password" name="password" autocomplete="current-password">
+      <span class="muted" style="font-size:12px;">Входите впервые? Введите только логин — пароль зададите на следующем шаге.</span>
     </div>
     <label style="display:block; margin-bottom:16px;"><input type="checkbox" name="remember" value="1"> Запомнить меня</label>
     <button class="btn" type="submit" style="width:100%;">Войти</button>
