@@ -61,6 +61,7 @@ API будет доступно по адресу `http://localhost:8000/api/v1`
 - [Полное описание таблиц, схема БД и логика журнала](docs/18-polnoe-opisanie-bd-i-logiki.md)
 - [Проект: работа касс без интернета](docs/19-rabota-bez-interneta.md)
 - [План отчётов и сверки с 1С](docs/20-plan-otchetov.md)
+- [Админ-панель](docs/21-admin-panel.md)
 - [Проект: журнал как единственный источник баланса](docs/16-proekt-perehoda-na-zhurnal.md)
 - [План перехода на журнал](docs/17-plan-perehoda-na-zhurnal.md)
 - [База данных](docs/04-baza-dannyh.md)
