@@ -23,7 +23,9 @@ class CardOperation extends Model
         'document_date',
         'document_number',
         'document_type',
-        'amount'
+        'amount',
+        'offline',
+        'amount_requested',
     ];
 
     protected $casts = [
@@ -31,6 +33,8 @@ class CardOperation extends Model
         'amount'       => 'float',
         'wallet_after' => 'float',
         'card_after'   => 'float',
+        'offline'      => 'boolean',
+        'amount_requested' => 'float',
     ];
 
     static $increase_action = 0;

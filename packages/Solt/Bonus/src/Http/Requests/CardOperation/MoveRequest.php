@@ -21,6 +21,7 @@ class MoveRequest extends FormRequest{
             'document_date'     => ['required', 'date'],
             'document_number'   => ['required', 'string', 'max:12', 'unique:card_operations,document_number,NULL,id,deleted_at,NULL,action,!5'],
             'document_type'     => ['required', 'string', 'max:40'],
+            'offline'           => ['sometimes', 'boolean'],
         ];
     }
 

@@ -23,7 +23,7 @@ interface CardOperationInterface extends GetInterface, StoreInterface{
      * @param String $document_type тип документа
      * @return Bool
      */
-    function delete( String $short_code, String $document_number, String $document_type ) : Bool;
+    function delete( String $short_code, String $document_number, String $document_type, bool $offline = false ) : Bool;
 
     /**
      * Перенос баланса с карты на карту
