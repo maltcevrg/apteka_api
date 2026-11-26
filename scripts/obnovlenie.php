@@ -21,6 +21,10 @@
  *     — создать администратора админ-панели (или сбросить ему пароль):
  *       пароль он задаст сам при первом входе на /admin/login.
  *       Можно сразу с паролем: &admin=логин&password=пароль (латиница и цифры, от 8 символов).
+ *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&repair=1
+ *     — восстановить таблицу migrations, если её очистили, а остальные таблицы целы
+ *       («Table 'users' already exists»): миграции, чьи таблицы/колонки уже есть,
+ *       помечаются выполненными, недостающие — выполняются.
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&schedule=1
  *     — только запуск планировщика (php artisan schedule:run).
  *  4. УДАЛИТЬ public/obnovlenie.php после использования.
@@ -131,6 +135,63 @@ if (!empty($_GET['schedule'])) {
             $run('bonus:import');
         }
     }
+} elseif (!empty($_GET['repair'])) {
+    // Таблица migrations пуста/неполна, а структура на месте: помечаем выполненными
+    // те миграции, чей результат (таблица или колонка) уже есть в базе.
+    echo "==> восстановление таблицы migrations\n";
+    $schema = Illuminate\Support\Facades\Schema::class;
+    $db = Illuminate\Support\Facades\DB::class;
+    if (!$schema::hasTable('migrations')) {
+        $run('migrate:install');
+    }
+    // имя миграции => [таблица, колонка|null]: признак, что миграция уже применена
+    $markers = [
+        '2014_10_12_000000_create_users_table'                         => ['users', null],
+        '2014_10_12_100000_create_password_resets_table'               => ['password_resets', null],
+        '2016_06_01_000001_create_oauth_auth_codes_table'              => ['oauth_auth_codes', null],
+        '2016_06_01_000002_create_oauth_access_tokens_table'           => ['oauth_access_tokens', null],
+        '2016_06_01_000003_create_oauth_refresh_tokens_table'          => ['oauth_refresh_tokens', null],
+        '2016_06_01_000004_create_oauth_clients_table'                 => ['oauth_clients', null],
+        '2019_08_19_000000_create_failed_jobs_table'                   => ['failed_jobs', null],
+        '2019_12_14_000001_create_personal_access_tokens_table'        => ['personal_access_tokens', null],
+        '2024_06_01_000001_create_oauth_device_codes_table'            => ['oauth_device_codes', null],
+        '2022_08_02_170800_create_cards_table'                         => ['cards', null],
+        '2022_08_02_170836_create_legal_entities_table'                => ['legal_entities', null],
+        '2022_08_02_170929_create_pharmacies_table'                    => ['pharmacies', null],
+        '2022_08_02_170951_create_card_operations_table'               => ['card_operations', null],
+        '2022_08_02_171032_create_bonus_balances_table'                => ['bonus_balances', null],
+        '2022_09_07_094441_update_legal_entities_table_drop_unique_index' => ['legal_entities', null],
+        '2026_11_12_000001_add_indexes_to_card_operations_and_cards'   => ['card_operations', 'amount'],
+        '2026_11_26_000001_drop_balance_snapshots'                     => ['card_operations', 'amount'],
+        '2026_12_01_000001_ledger_columns'                             => ['card_operations', 'card_after'],
+        '2026_12_02_000001_cards_birthdate_nullable'                   => ['card_operations', 'card_after'],
+        '2026_12_03_000001_card_operations_offline'                    => ['card_operations', 'offline'],
+        '2026_12_04_000001_users_login'                                => ['users', 'login'],
+        '2026_12_05_000001_users_roles'                                => ['users', 'role'],
+        '2026_12_06_000001_admin_logs_and_operation_author'            => ['admin_logs', null],
+    ];
+    $done = $db::table('migrations')->pluck('migration')->all();
+    $batch = (int) $db::table('migrations')->max('batch') + 1;
+    $marked = 0;
+    foreach ($markers as $name => [$table, $column]) {
+        if (in_array($name, $done, true)) {
+            continue;
+        }
+        $exists = $column === null ? $schema::hasTable($table) : $schema::hasColumn($table, $column);
+        if ($exists) {
+            $db::table('migrations')->insert(['migration' => $name, 'batch' => $batch]);
+            echo "  отмечена как выполненная: {$name}\n";
+            $marked++;
+        } else {
+            echo "  будет выполнена:          {$name}\n";
+        }
+    }
+    echo "Помечено: {$marked}\n\n";
+    $run('migrate', ['--force' => true]);
+    $run('config:cache');
+    $run('route:cache');
+    $run('event:cache');
+    $run('view:clear');
 } elseif (!empty($_GET['import'])) {
     $run('bonus:import');
 } elseif (!empty($_GET['admin'])) {
