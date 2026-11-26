@@ -91,6 +91,8 @@ class LedgerService
             'amount'          => round($amount, 2),
             'offline'         => !empty($document['offline']),
             'amount_requested' => isset($document['amount_requested']) ? round((float) $document['amount_requested'], 2) : null,
+            'user_id'         => $document['user_id'] ?? null,
+            'comment'         => $document['comment'] ?? null,
         ]);
         $operation->card()->associate($card);
         if ($legalEntity !== null) {

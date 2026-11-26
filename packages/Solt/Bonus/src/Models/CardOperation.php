@@ -26,6 +26,8 @@ class CardOperation extends Model
         'amount',
         'offline',
         'amount_requested',
+        'user_id',
+        'comment',
     ];
 
     protected $casts = [
@@ -67,6 +69,12 @@ class CardOperation extends Model
         });
     }
 
+
+    /** Кто провёл операцию вручную из админ-панели (null — касса). */
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
 
     /**
      * Create a new factory instance for the model.

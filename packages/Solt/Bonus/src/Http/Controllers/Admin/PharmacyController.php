@@ -4,6 +4,7 @@ namespace Solt\Bonus\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Solt\Bonus\Models\AdminLog;
 use Solt\Bonus\Models\LegalEntity;
 use Solt\Bonus\Models\Pharmacy;
 
@@ -39,12 +40,32 @@ class PharmacyController extends Controller
         $pharmacy->deleted_at = null;
         $pharmacy->save();
 
+        AdminLog::write('pharmacy.create', "Аптека {$pharmacy->number}", ['name' => $pharmacy->name, 'inn' => $pharmacy->legal_entity->inn]);
         return back()->with('success', "Аптека {$pharmacy->number} «{$pharmacy->name}» добавлена");
+    }
+
+    public function update(Request $request, Pharmacy $pharmacy)
+    {
+        $data = $request->validate([
+            'number' => ['required', 'integer', 'between:0,99'],
+            'name'   => ['required', 'string', 'max:255'],
+        ]);
+        if ((int) $data['number'] !== $pharmacy->number && Pharmacy::where('number', $data['number'])->exists()) {
+            return back()->withErrors(["Номер {$data['number']} уже занят другой аптекой"]);
+        }
+        $old = ['number' => $pharmacy->number, 'name' => $pharmacy->name];
+        $pharmacy->number = (int) $data['number'];
+        $pharmacy->name = $data['name'];
+        $pharmacy->save();
+
+        AdminLog::write('pharmacy.update', "Аптека {$pharmacy->number}", ['old' => $old, 'new' => ['number' => $pharmacy->number, 'name' => $pharmacy->name]]);
+        return back()->with('success', "Аптека {$pharmacy->number} «{$pharmacy->name}» сохранена");
     }
 
     public function destroy(Pharmacy $pharmacy)
     {
         $pharmacy->delete();
+        AdminLog::write('pharmacy.delete', "Аптека {$pharmacy->number}", ['name' => $pharmacy->name]);
         return back()->with('success', "Аптека {$pharmacy->number} «{$pharmacy->name}» удалена. Её чеки в журнале сохранены.");
     }
 
@@ -63,6 +84,7 @@ class PharmacyController extends Controller
         $pharmacy->legal_entity()->associate($le);
         $pharmacy->save();
 
+        AdminLog::write('pharmacy.legal_entity', "Аптека {$pharmacy->number}", ['from' => $old, 'to' => $le->inn]);
         return back()->with('success', "Аптека {$pharmacy->number} «{$pharmacy->name}»: ИНН {$old} → {$le->inn} ({$le->name})");
     }
 }

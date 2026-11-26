@@ -13,4 +13,10 @@ return [
     */
     'admin_key' => env('BONUS_ADMIN_KEY'),
 
+    /*
+    | Автовыход из админ-панели после N минут бездействия
+    | для ролей с правом изменения (admin, editor). 0 — отключить.
+    */
+    'admin_idle_minutes' => (int) env('BONUS_ADMIN_IDLE', 30),
+
 ];

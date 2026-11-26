@@ -10,7 +10,15 @@
     @forelse ($legal_entities as $le)
       <tr>
         <td><code>{{ $le->inn }}</code></td>
-        <td>{{ $le->name }}</td>
+        <td>
+          @if ($canEdit)
+          <form method="post" action="{{ route('admin.legal-entities.update', $le) }}" class="row" style="gap:6px;">
+            @csrf
+            <input type="text" name="name" value="{{ $le->name }}" required style="width:320px;">
+            <button class="btn small secondary" type="submit">Сохранить</button>
+          </form>
+          @else{{ $le->name }}@endif
+        </td>
         <td class="num">{{ $pharmacy_counts[$le->id] ?? 0 }}</td>
         <td class="num">{{ $card_counts[$le->id] ?? 0 }}</td>
         @if ($canEdit)
