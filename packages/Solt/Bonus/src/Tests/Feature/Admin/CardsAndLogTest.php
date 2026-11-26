@@ -196,8 +196,8 @@ class CardsAndLogTest extends TestCase
         $this->post("/admin/legal-entities/{$le->id}", ['name' => 'ООО Новое'])->assertRedirect();
         $this->assertSame('ООО Новое', $le->fresh()->name);
 
-        $this->get('/admin/log')->assertOk()->assertSee('Аптека: изменена')->assertSee('Юрлицо: изменено');
-        $this->get('/admin/log?action=pharmacy.update')->assertOk()->assertSee('Аптека: изменена')->assertDontSee('Юрлицо: изменено');
+        $this->get('/admin/log')->assertOk()->assertSee('Аптека 2')->assertSee('ООО Новое');
+        $this->get('/admin/log?action=pharmacy.update')->assertOk()->assertSee('Аптека 2')->assertDontSee('ООО Новое');
         $this->get('/admin')->assertOk()->assertSee('Состояние системы')->assertSee('Последние действия');
 
         $this->actingAs($this->editor());
