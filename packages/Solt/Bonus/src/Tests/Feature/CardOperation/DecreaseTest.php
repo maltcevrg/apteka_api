@@ -244,10 +244,11 @@ class DecreaseTest extends TestCase
 
         $this->postJson(route('api.bonus.decrease.store'), $payload);
 
+        // списание с пустой карты уводит баланс в минус
         $this->getJson( route('api.bonus.balance.get', $card->short_code ) )
             ->assertStatus(200)
             ->assertJson([
-                'balance' => 0.0
+                'balance' => -0.1
             ]);
     }
 
