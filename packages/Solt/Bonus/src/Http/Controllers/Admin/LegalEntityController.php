@@ -4,6 +4,7 @@ namespace Solt\Bonus\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Solt\Bonus\Models\AdminLog;
 use Solt\Bonus\Models\Card;
 use Solt\Bonus\Models\LegalEntity;
 use Solt\Bonus\Models\Pharmacy;
@@ -41,7 +42,19 @@ class LegalEntityController extends Controller
         $le->deleted_at = null;
         $le->save();
 
+        AdminLog::write('legal_entity.create', "Юрлицо {$le->inn}", ['name' => $le->name]);
         return back()->with('success', "Юрлицо {$le->inn} «{$le->name}» добавлено");
+    }
+
+    public function update(Request $request, LegalEntity $legal_entity)
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
+        $old = $legal_entity->name;
+        $legal_entity->name = $data['name'];
+        $legal_entity->save();
+
+        AdminLog::write('legal_entity.update', "Юрлицо {$legal_entity->inn}", ['old' => $old, 'new' => $legal_entity->name]);
+        return back()->with('success', "Юрлицо {$legal_entity->inn}: название сохранено");
     }
 
     public function destroy(LegalEntity $legal_entity)
@@ -52,6 +65,7 @@ class LegalEntityController extends Controller
         }
 
         $legal_entity->delete();
+        AdminLog::write('legal_entity.delete', "Юрлицо {$legal_entity->inn}", ['name' => $legal_entity->name]);
         return back()->with('success', "Юрлицо {$legal_entity->inn} «{$legal_entity->name}» удалено. Операции и карты в журнале сохранены.");
     }
 }

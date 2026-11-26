@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Solt\Bonus\Models\AdminLog;
 
 /**
  * Пользователи админ-панели (только для роли admin).
@@ -35,6 +36,7 @@ class UserController extends Controller
             'password' => null,
         ]);
 
+        AdminLog::write('user.create', $data['login'], ['role' => $data['role']]);
         return back()->with('success', "Пользователь «{$data['login']}» создан (" . User::ROLES[$data['role']] . "). Сообщите ему логин — пароль он задаст при первом входе.");
     }
 
@@ -48,6 +50,7 @@ class UserController extends Controller
 
         $user->role = $data['role'];
         $user->save();
+        AdminLog::write('user.role', $user->login, ['role' => $user->role]);
 
         return back()->with('success', "«{$user->login}»: роль — " . $user->roleName());
     }
@@ -58,6 +61,7 @@ class UserController extends Controller
         $user->password = null;
         $user->remember_token = null;
         $user->save();
+        AdminLog::write('user.reset', $user->login);
 
         return back()->with('success', "«{$user->login}»: пароль сброшен. При следующем входе по логину пользователь задаст новый.");
     }
@@ -72,6 +76,7 @@ class UserController extends Controller
         }
 
         $user->delete();
+        AdminLog::write('user.delete', $user->login);
         return back()->with('success', "Пользователь «{$user->login}» удалён");
     }
 

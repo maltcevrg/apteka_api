@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Solt\Bonus\Models\AdminLog;
 
 class AuthController extends Controller
 {
@@ -42,6 +43,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
+        AdminLog::write('login', $user->login);
         return redirect()->intended(route('admin.dashboard'));
     }
 
@@ -73,6 +75,7 @@ class AuthController extends Controller
         $request->session()->forget('setup_login');
         Auth::login($user);
         $request->session()->regenerate();
+        AdminLog::write('login', $user->login, ['first' => true]);
 
         return redirect()->route('admin.dashboard')->with('success', 'Пароль задан, добро пожаловать!');
     }

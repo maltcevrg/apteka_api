@@ -10,7 +10,7 @@
   body { margin:0; font:15px/1.45 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:var(--bg); color:var(--text); }
   header { background:#1f2933; color:#fff; padding:0 24px; display:flex; align-items:center; gap:24px; height:52px; }
   header .brand { font-weight:600; }
-  header nav a { color:#cbd2d9; text-decoration:none; margin-right:18px; padding:16px 0; display:inline-block; border-bottom:2px solid transparent; }
+  header nav a { color:#cbd2d9; text-decoration:none; margin-right:14px; font-size:14px; padding:16px 0; display:inline-block; border-bottom:2px solid transparent; }
   header nav a.active, header nav a:hover { color:#fff; border-color:var(--accent); }
   header .user { margin-left:auto; color:#cbd2d9; display:flex; align-items:center; gap:12px; }
   header button { background:none; border:1px solid #52606d; color:#fff; padding:4px 10px; border-radius:4px; cursor:pointer; }
@@ -43,6 +43,15 @@
   .num { text-align:right; font-variant-numeric:tabular-nums; }
   .presets a { display:inline-block; margin:0 8px 8px 0; padding:5px 10px; border:1px solid var(--line); border-radius:16px; text-decoration:none; color:var(--text); background:#fff; font-size:13px; }
   .presets a.active { border-color:var(--accent); color:var(--accent); background:#eef3fb; }
+  .pagination { display:flex; gap:4px; list-style:none; padding:0; margin:14px 0 0; flex-wrap:wrap; }
+  .pagination li a, .pagination li span { display:block; padding:4px 9px; border:1px solid var(--line); border-radius:4px; text-decoration:none; color:var(--text); font-size:13px; background:#fff; }
+  .pagination li.active span { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .pagination li.disabled span { color:#9aa5b1; }
+  .badge { display:inline-block; padding:1px 7px; border-radius:10px; font-size:12px; background:#eef1f4; color:var(--muted); }
+  .badge.ok { background:#e6f4ea; color:var(--ok); } .badge.err { background:#fdecea; color:var(--err); } .badge.warn { background:#fff8e1; color:var(--warn); }
+  .neg { color:var(--err); } .pos { color:var(--ok); }
+  details summary { cursor:pointer; color:var(--accent); }
+  pre { background:#f6f8fa; padding:10px; border-radius:6px; font-size:12px; overflow:auto; max-height:300px; }
   code { background:#eef1f4; padding:1px 5px; border-radius:3px; font-size:13px; }
 </style>
 </head>
@@ -52,6 +61,8 @@
   <span class="brand">Бонусные карты</span>
   <nav>
     <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Обзор</a>
+    <a href="{{ route('admin.cards') }}" class="{{ request()->routeIs('admin.cards*') ? 'active' : '' }}">Карты</a>
+    <a href="{{ route('admin.operations') }}" class="{{ request()->routeIs('admin.operations*') ? 'active' : '' }}">Журнал</a>
     <a href="{{ route('admin.pharmacies') }}" class="{{ request()->routeIs('admin.pharmacies*') ? 'active' : '' }}">Аптеки</a>
     <a href="{{ route('admin.legal-entities') }}" class="{{ request()->routeIs('admin.legal-entities*') ? 'active' : '' }}">Юрлица</a>
     @if (auth()->user()->canEdit())
@@ -60,6 +71,8 @@
     <a href="{{ route('admin.reports') }}" class="{{ request()->routeIs('admin.reports*') ? 'active' : '' }}">Отчёты</a>
     @if (auth()->user()->isAdmin())
     <a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users*') ? 'active' : '' }}">Пользователи</a>
+    <a href="{{ route('admin.clients') }}" class="{{ request()->routeIs('admin.clients*') ? 'active' : '' }}">Кассы</a>
+    <a href="{{ route('admin.log') }}" class="{{ request()->routeIs('admin.log*') ? 'active' : '' }}">Действия</a>
     @endif
   </nav>
   <div class="user">

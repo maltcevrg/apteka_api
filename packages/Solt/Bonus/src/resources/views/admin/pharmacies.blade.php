@@ -9,8 +9,19 @@
     <tbody>
     @forelse ($pharmacies as $ph)
       <tr>
+        @if ($canEdit)
+        <td colspan="2">
+          <form method="post" action="{{ route('admin.pharmacies.update', $ph) }}" class="row" style="gap:6px;">
+            @csrf
+            <input type="text" name="number" value="{{ $ph->number }}" pattern="[0-9]{1,2}" required style="width:60px;">
+            <input type="text" name="name" value="{{ $ph->name }}" required style="width:260px;">
+            <button class="btn small secondary" type="submit">Сохранить</button>
+          </form>
+        </td>
+        @else
         <td>{{ $ph->number }}</td>
         <td>{{ $ph->name }}</td>
+        @endif
         <td><code>{{ $ph->legal_entity?->inn }}</code></td>
         <td>{{ $ph->legal_entity?->name }}</td>
         @if ($canEdit)

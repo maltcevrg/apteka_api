@@ -4,6 +4,7 @@ namespace Solt\Bonus\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Solt\Bonus\Models\AdminLog;
 use Solt\Bonus\Services\ImportService;
 
 /**
@@ -54,6 +55,12 @@ class ImportController extends Controller
         } catch (\Throwable $e) {
             return back()->withErrors(array_merge($errors, ['Ошибка загрузки, ничего не записано: ' . $e->getMessage()]));
         }
+
+        AdminLog::write('import', implode(', ', array_filter([
+            $request->hasFile('legal_entities') ? $request->file('legal_entities')->getClientOriginalName() : null,
+            $request->hasFile('pharmacies') ? $request->file('pharmacies')->getClientOriginalName() : null,
+            ...array_values($names),
+        ])), ['legal_entities' => $stats['legal_entities'], 'pharmacies' => $stats['pharmacies'], 'cards' => $stats['cards'], 'openings' => $stats['openings'], 'skipped' => count($stats['skipped'])]);
 
         return view('bonus::admin.import', ['stats' => $stats, 'file_errors' => $errors]);
     }
