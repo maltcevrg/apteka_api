@@ -74,6 +74,8 @@ Route::group(['prefix' => '/admin', 'middleware' => ['web'], 'as' => 'admin.'], 
             Route::post('/clients/{client}/secret', [ClientController::class, 'regenerate'])->name('clients.secret');
             Route::post('/clients/{client}/revoke', [ClientController::class, 'revoke'])->name('clients.revoke');
 
+            Route::post('/cards/{card}/rebuild', [CardController::class, 'rebuild'])->withTrashed()->name('cards.rebuild');
+
             Route::get('/log', [LogController::class, 'index'])->name('log');
         });
     });

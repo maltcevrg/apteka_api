@@ -146,4 +146,51 @@ class LedgerService
 
         return $errors;
     }
+
+    /**
+     * Пересчёт остатков карты: amount каждой строки считается истиной,
+     * card_after / wallet_after перезаписываются нарастающим итогом в порядке id.
+     * Вызывать внутри транзакции под блокировкой карты.
+     *
+     * @return array{changed:int, before:float, after:float, rows:array} rows — первые 20 изменённых строк (id, поле, было, стало)
+     */
+    public static function rebuildCard(int $cardId): array
+    {
+        $card = 0.0;
+        $wallets = [];
+        $changed = 0;
+        $rows = [];
+        $before = 0.0;
+
+        $last = CardOperation::where('card_id', $cardId)->orderByDesc('id')->first();
+        if ($last) {
+            $before = (float) $last->card_after;
+        }
+
+        CardOperation::where('card_id', $cardId)->orderBy('id')->lockForUpdate()
+            ->chunkById(1000, function ($ops) use (&$card, &$wallets, &$changed, &$rows) {
+                foreach ($ops as $op) {
+                    $key = $op->legal_entity_id ?? '';
+                    $card = round($card + (float) $op->amount, 2);
+                    $wallets[$key] = round(($wallets[$key] ?? 0) + (float) $op->amount, 2);
+
+                    $dirty = [];
+                    if (abs($card - (float) $op->card_after) >= 0.01) {
+                        $dirty['card_after'] = $card;
+                        if (count($rows) < 20) $rows[] = ['id' => $op->id, 'field' => 'card_after', 'old' => (float) $op->card_after, 'new' => $card];
+                    }
+                    if (abs($wallets[$key] - (float) $op->wallet_after) >= 0.01) {
+                        $dirty['wallet_after'] = $wallets[$key];
+                        if (count($rows) < 20) $rows[] = ['id' => $op->id, 'field' => 'wallet_after', 'old' => (float) $op->wallet_after, 'new' => $wallets[$key]];
+                    }
+                    if ($dirty) {
+                        // без touch updated_at и без событий — только два поля
+                        CardOperation::whereKey($op->id)->update($dirty);
+                        $changed++;
+                    }
+                }
+            });
+
+        return ['changed' => $changed, 'before' => $before, 'after' => $card, 'rows' => $rows];
+    }
 }

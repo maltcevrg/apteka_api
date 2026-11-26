@@ -157,4 +157,26 @@ class CardController extends Controller
         AdminLog::write('card.replace', "Карта {$card->short_code}", ['to' => $target->short_code]);
         return redirect()->route('admin.cards.show', $target)->with('success', "Баланс карты {$card->short_code} перенесён на {$target->short_code}; старая карта помечена «заменена»");
     }
+
+    /**
+     * Пересчёт остатков по суммам — только admin и только при найденном разрыве.
+     * Суммы операций не меняются; card_after / wallet_after перезаписываются.
+     */
+    public function rebuild(Card $card)
+    {
+        if (LedgerService::checkCard($card->id) === []) {
+            return back()->withErrors(['Цепочка остатков этой карты целая — пересчёт не нужен']);
+        }
+
+        $r = DB::transaction(function () use ($card) {
+            Card::withTrashed()->lockForUpdate()->findOrFail($card->id);
+            return LedgerService::rebuildCard($card->id);
+        });
+
+        AdminLog::write('ledger.rebuild', "Карта {$card->short_code}", [
+            'changed' => $r['changed'], 'balance_before' => $r['before'], 'balance_after' => $r['after'], 'rows' => $r['rows'],
+        ]);
+        return back()->with('success', sprintf('Остатки пересчитаны: изменено строк %d, баланс %s → %s',
+            $r['changed'], number_format($r['before'], 2, ',', ' '), number_format($r['after'], 2, ',', ' ')));
+    }
 }

@@ -4,6 +4,7 @@ namespace Solt\Bonus\Tests\Feature\Admin;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Laravel\Passport\Client;
 use Solt\Bonus\Models\AdminLog;
@@ -212,5 +213,41 @@ class CardsAndLogTest extends TestCase
         $this->get('/admin')->assertOk();
         $this->travel(31)->minutes();
         $this->get('/admin')->assertRedirect('/admin/login');
+    }
+
+    public function test_ledger_rebuild_fixes_broken_chain_admin_only()
+    {
+        [$card, $le, $ph] = $this->cardWithBalance(100);
+        LedgerService::append($card, $le, $ph, CardOperation::$decreser_action, -30, [
+            'document_date' => '2026-02-01', 'document_number' => 'DOC-B', 'document_type' => 'Чек',
+        ]);
+        // «портим» журнал: кто-то поправил сумму первой операции в базе
+        $first = CardOperation::where('card_id', $card->id)->orderBy('id')->first();
+        DB::table('card_operations')->where('id', $first->id)->update(['amount' => 50]);
+        $this->assertNotSame([], LedgerService::checkCard($card->id));
+
+        // editor не может
+        $this->actingAs($this->editor());
+        $this->get('/admin/cards/' . $card->id)->assertOk()->assertSee('Разрыв цепочки')->assertDontSee('Пересчитать остатки');
+        $this->post("/admin/cards/{$card->id}/rebuild")->assertForbidden();
+
+        $this->actingAs($this->admin());
+        $this->get('/admin/cards/' . $card->id)->assertOk()->assertSee('Пересчитать остатки');
+        $this->post("/admin/cards/{$card->id}/rebuild")->assertSessionHas('success');
+
+        $this->assertSame([], LedgerService::checkCard($card->id));
+        $this->assertEqualsWithDelta(20, $card->fresh()->getBalance(), 0.001);
+        $log = AdminLog::where('action', 'ledger.rebuild')->first();
+        $this->assertSame(2, $log->details['changed']);
+        $this->assertEqualsWithDelta(70, $log->details['balance_before'], 0.001);
+
+        // повторно — отказ, цепочка целая
+        $this->post("/admin/cards/{$card->id}/rebuild")->assertSessionHasErrors();
+
+        // консольная команда
+        DB::table('card_operations')->where('id', $first->id)->update(['amount' => 60]);
+        $this->artisan('bonus:ledger-rebuild', ['--all' => true, '--force' => true])->assertSuccessful();
+        $this->assertSame([], LedgerService::checkCard($card->id));
+        $this->assertEqualsWithDelta(30, $card->fresh()->getBalance(), 0.001);
     }
 }

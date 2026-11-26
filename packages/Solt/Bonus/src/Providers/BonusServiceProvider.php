@@ -21,6 +21,7 @@ class BonusServiceProvider extends ServiceProvider
         // и при запуске artisan из веб-скрипта (public/obnovlenie.php).
         $this->commands([
             \Solt\Bonus\Console\LedgerCheckCommand::class,
+            \Solt\Bonus\Console\LedgerRebuildCommand::class,
             \Solt\Bonus\Console\ImportCommand::class,
             \Solt\Bonus\Console\AdminUserCommand::class,
         ]);
