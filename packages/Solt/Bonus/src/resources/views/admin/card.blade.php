@@ -50,7 +50,7 @@
     <div class="field" style="flex:1;"><label>Причина (обязательно)</label><input type="text" name="comment" value="{{ old('comment') }}" required minlength="3" placeholder="Обращение клиента №…, ошибка кассира…"></div>
     <button class="btn" type="submit" onclick="return confirm('Записать корректировку в журнал?');">Записать</button>
   </form>
-  <p class="muted" style="margin-bottom:0;">Корректировка — обычная строка журнала с типом документа «Корректировка», вашим логином и причиной. Удалить её нельзя, только отменить следующей корректировкой.</p>
+  <p class="muted" style="margin-bottom:0;">Корректировка — обычная строка журнала с типом документа «Корректировка», вашим логином и причиной. Баланс может стать отрицательным. Удалить корректировку нельзя, только отменить следующей.</p>
 </div>
 
 <div class="card">

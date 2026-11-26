@@ -70,7 +70,7 @@ class CardsAndLogTest extends TestCase
         $this->get('/admin/cards?q=нет-такой')->assertOk()->assertSee('Ничего не найдено');
     }
 
-    public function test_editor_can_adjust_balance_but_not_below_zero()
+    public function test_editor_can_adjust_balance_including_negative()
     {
         [$card, $le] = $this->cardWithBalance(100);
         $this->actingAs($this->editor());
@@ -87,10 +87,10 @@ class CardsAndLogTest extends TestCase
         $this->assertNotNull($op->user_id);
         $this->assertStringStartsWith('K', $op->document_number);
 
-        // ниже нуля нельзя
-        $this->post("/admin/cards/{$card->id}/adjust", ['amount' => '-100', 'legal_entity_id' => $le->id, 'comment' => 'слишком много'])
-            ->assertSessionHasErrors();
-        $this->assertEqualsWithDelta(70, $card->fresh()->getBalance(), 0.001);
+        // в минус можно
+        $this->post("/admin/cards/{$card->id}/adjust", ['amount' => '-100', 'legal_entity_id' => $le->id, 'comment' => 'уход в минус'])
+            ->assertSessionHas('success');
+        $this->assertEqualsWithDelta(-30, $card->fresh()->getBalance(), 0.001);
 
         // без причины нельзя
         $this->post("/admin/cards/{$card->id}/adjust", ['amount' => '10', 'legal_entity_id' => $le->id, 'comment' => ''])
