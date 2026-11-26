@@ -23,7 +23,16 @@
     <tr><th>Создана / изменена</th><td>{{ $card->created_at?->format('d.m.Y H:i') }} / {{ $card->updated_at?->format('d.m.Y H:i') }}</td></tr>
   </table>
   @if ($ledger_errors)
-    <div class="flash error" style="margin-top:12px;">Разрыв цепочки остатков: {{ count($ledger_errors) }} строк(и). Первая — операция №{{ $ledger_errors[0]['id'] }}, поле {{ $ledger_errors[0]['field'] }}: должно быть {{ $ledger_errors[0]['expected'] }}, записано {{ $ledger_errors[0]['actual'] }}.</div>
+    <div class="flash error" style="margin-top:12px;">
+      Разрыв цепочки остатков: {{ count($ledger_errors) }} строк(и). Первая — операция №{{ $ledger_errors[0]['id'] }}, поле {{ $ledger_errors[0]['field'] }}: должно быть {{ $ledger_errors[0]['expected'] }}, записано {{ $ledger_errors[0]['actual'] }}.
+      @if (auth()->user()->isAdmin())
+      <form method="post" action="{{ route('admin.cards.rebuild', $card) }}" style="margin-top:10px;" onsubmit="return confirm('Пересчитать остатки по суммам операций? Суммы не изменятся, поля «остаток» будут перезаписаны во всех строках карты. Действие записывается в журнал.');">
+        @csrf
+        <button class="btn danger" type="submit">Пересчитать остатки по суммам</button>
+        <span class="muted" style="font-size:13px;">Истиной считаются суммы операций. Если ошибочна именно сумма — сначала исправьте её корректировкой, пересчёт делайте после.</span>
+      </form>
+      @endif
+    </div>
   @endif
 </div>
 

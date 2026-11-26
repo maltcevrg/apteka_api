@@ -37,6 +37,7 @@ class AdminLog extends Model
         'client.secret'        => 'Касса: новый секрет',
         'client.revoke'        => 'Касса: отозвана',
         'ledger.check'         => 'Проверка цепочки остатков',
+        'ledger.rebuild'       => 'Пересчёт остатков карты',
     ];
 
     public static function write(string $action, ?string $subject = null, array $details = []): self
