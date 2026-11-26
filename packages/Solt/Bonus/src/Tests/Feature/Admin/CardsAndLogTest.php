@@ -47,7 +47,7 @@ class CardsAndLogTest extends TestCase
     private function cardWithBalance(float $amount = 100): array
     {
         $le = LegalEntity::create(['inn' => '7701000001', 'name' => 'ООО Аптека']);
-        $ph = Pharmacy::create(['number' => 1, 'name' => 'Аптека 1', 'legal_entity_id' => $le->id]);
+        $ph = Pharmacy::factory()->create(['number' => 1, 'name' => 'Аптека 1', 'legal_entity_id' => $le->id]);
         $card = Card::factory()->create(['short_code' => 'TEST0001', 'legal_entity_id' => $le->id, 'status' => 0]);
         LedgerService::append($card, $le, $ph, CardOperation::$increase_action, $amount, [
             'document_date' => '2026-01-10', 'document_number' => 'DOC-A', 'document_type' => 'Чек',
@@ -188,7 +188,7 @@ class CardsAndLogTest extends TestCase
     public function test_admin_log_and_dashboard()
     {
         $le = LegalEntity::create(['inn' => '7701000001', 'name' => 'ООО Аптека']);
-        $ph = Pharmacy::create(['number' => 1, 'name' => 'Аптека 1', 'legal_entity_id' => $le->id]);
+        $ph = Pharmacy::factory()->create(['number' => 1, 'name' => 'Аптека 1', 'legal_entity_id' => $le->id]);
         $this->actingAs($this->admin());
 
         $this->post("/admin/pharmacies/{$ph->id}", ['number' => 2, 'name' => 'Аптека 2'])->assertRedirect();
