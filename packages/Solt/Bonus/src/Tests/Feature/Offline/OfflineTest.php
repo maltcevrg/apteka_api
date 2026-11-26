@@ -54,32 +54,29 @@ class OfflineTest extends TestCase
         $this->assertSame([true, false], CardOperation::orderBy('id')->pluck('offline')->all());
     }
 
-    public function test_online_decrease_over_balance_is_rejected()
+    public function test_decrease_over_balance_goes_negative()
     {
         $this->postJson(route('api.bonus.increase.store'), $this->payload('100'))->assertStatus(201);
-        $this->postJson(route('api.bonus.decrease.store'), $this->payload('-150'))->assertStatus(202);
-        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => 100]);
+        $this->postJson(route('api.bonus.decrease.store'), $this->payload('-150'))
+            ->assertStatus(201)->assertJson(['amount' => -150, 'amount_requested' => null, 'balance_after' => -50]);
+        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => -50]);
+        $this->assertSame([], LedgerService::checkCard($this->card->id));
     }
 
-    public function test_offline_decrease_over_balance_writes_off_to_zero()
+    public function test_offline_decrease_over_balance_writes_full_amount()
     {
-        // 9:00 онлайн +100, 12:00 онлайн -60, 13:00 приходит офлайн -80 (пробит в 10:00)
         $this->postJson(route('api.bonus.increase.store'), $this->payload('100'))->assertStatus(201);
         $this->postJson(route('api.bonus.decrease.store'), $this->payload('-60'))->assertStatus(201);
 
         $this->postJson(route('api.bonus.decrease.store'), $this->payload('-80', ['offline' => 1]))
             ->assertStatus(201)
-            ->assertJson(['amount' => -40, 'amount_requested' => -80, 'offline' => true, 'balance_after' => 0]);
+            ->assertJson(['amount' => -80, 'amount_requested' => null, 'offline' => true, 'balance_after' => -40]);
 
-        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => 0]);
+        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => -40]);
         $this->assertSame([], LedgerService::checkCard($this->card->id));
-
-        // при нулевом балансе офлайн-списание записывается нулевой строкой
-        $this->postJson(route('api.bonus.decrease.store'), $this->payload('-5', ['offline' => true]))
-            ->assertStatus(201)->assertJson(['amount' => 0, 'amount_requested' => -5, 'balance_after' => 0]);
     }
 
-    public function test_offline_cancel_of_spent_increase_writes_off_to_zero()
+    public function test_cancel_of_spent_increase_goes_negative()
     {
         $inc = $this->payload('100');
         $this->postJson(route('api.bonus.increase.store'), $inc)->assertStatus(201);
@@ -91,15 +88,19 @@ class OfflineTest extends TestCase
             'document_number' => $inc['document_number'],
             'document_type'   => $inc['document_type'],
         ];
-        // онлайн — отказ (30 - 100 < 0)
-        $this->postJson(route('api.bonus.increase.cancel'), $cancel)->assertStatus(202);
-        // офлайн — сторно на 30, баланс 0
-        $this->postJson(route('api.bonus.increase.cancel'), $cancel + ['offline' => true])->assertStatus(204);
+        $this->postJson(route('api.bonus.increase.cancel'), $cancel)->assertStatus(204);
 
         $storno = CardOperation::where('action', CardOperation::$cancel_action)->first();
-        $this->assertEquals(-30, $storno->amount);
-        $this->assertEquals(-100, $storno->amount_requested);
-        $this->assertTrue($storno->offline);
-        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => 0]);
+        $this->assertEquals(-100, $storno->amount);
+        $this->assertNull($storno->amount_requested);
+        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => -70]);
+    }
+
+    public function test_operation_on_deleted_card_is_rejected_not_crashed()
+    {
+        $this->postJson(route('api.bonus.increase.store'), $this->payload('100'))->assertStatus(201);
+        $this->card->delete();
+        $this->postJson(route('api.bonus.decrease.store'), $this->payload('-10'))
+            ->assertStatus(202)->assertJson(['message' => 'Карта не найдена или не действует']);
     }
 }

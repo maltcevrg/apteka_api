@@ -76,9 +76,7 @@ class CardController extends Controller
 
         $result = DB::transaction(function () use ($card, $amount, $le, $data, $request) {
             $locked = Card::withTrashed()->lockForUpdate()->findOrFail($card->id);
-            if ($locked->getBalance() + $amount < -0.004) {
-                return false;
-            }
+            // баланс может быть отрицательным — ограничений по остатку нет
             return LedgerService::append($locked, $le, null,
                 $amount > 0 ? CardOperation::$increase_action : CardOperation::$decreser_action,
                 $amount, [
@@ -89,10 +87,6 @@ class CardController extends Controller
                     'comment'         => $data['comment'],
                 ]);
         });
-
-        if ($result === false) {
-            return back()->withInput()->withErrors(["Нельзя списать больше остатка (сейчас " . number_format($card->getBalance(), 2, ',', ' ') . ")"]);
-        }
 
         AdminLog::write('card.adjust', "Карта {$card->short_code}", ['amount' => $amount, 'inn' => $le->inn, 'comment' => $data['comment'], 'operation_id' => $result->id]);
         return back()->with('success', 'Корректировка записана: ' . ($amount > 0 ? '+' : '') . number_format($amount, 2, ',', ' ') . ', остаток ' . number_format($result->card_after, 2, ',', ' '));

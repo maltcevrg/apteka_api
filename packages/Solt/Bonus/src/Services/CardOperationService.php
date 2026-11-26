@@ -37,18 +37,13 @@ class CardOperationService implements CardOperationInterface{
             // Блокируем строку карты: все операции по одной карте выполняются
             // последовательно, и остаток читается уже под блокировкой.
             $card = Card::findByShortCode( $data['short_code'], true );
-            $amount = round((float) $data['amount'], 2);
-            $offline = !empty($data['offline']);
-
-            if( $card->getBalance() + $amount < 0 ){
-                if( !$offline ){
-                    return false;
-                }
-                // Офлайн-списание: касса уже дала скидку без связи, отказать нельзя.
-                // Списываем сколько есть — баланс становится 0, запрошенная сумма сохраняется.
-                $data['amount_requested'] = $amount;
-                $amount = -1 * $card->getBalance();
+            if( empty( $card ) ){
+                return false; // карта удалена или аннулирована
             }
+            // Баланс может уходить в минус: ограничений по остатку нет,
+            // списывается ровно запрошенная сумма. Флаг offline — только пометка.
+            $amount = round((float) $data['amount'], 2);
+            unset($data['amount_requested']);
 
             $card_operation = LedgerService::append(
                 $card,
@@ -78,16 +73,8 @@ class CardOperationService implements CardOperationInterface{
             if( empty( $original ) || $original->action == CardOperation::$cancel_action ){
                 return false;
             }
+            // Сторно всегда на полную сумму — баланс может стать отрицательным.
             $amount = -1 * (float) $original->amount;
-            $amount_requested = null;
-            if( $card->getBalance() + $amount < 0 ){
-                if( !$offline ){
-                    return false;
-                }
-                // Офлайн-отмена начисления, которое уже потратили: снимаем сколько есть, баланс 0.
-                $amount_requested = $amount;
-                $amount = -1 * $card->getBalance();
-            }
 
             LedgerService::append(
                 $card,
@@ -100,7 +87,6 @@ class CardOperationService implements CardOperationInterface{
                     'document_number' => $original->document_number,
                     'document_type'   => $original->document_type,
                     'offline'         => $offline,
-                    'amount_requested' => $amount_requested,
                 ],
                 $original
             );
@@ -122,7 +108,7 @@ class CardOperationService implements CardOperationInterface{
             $card_from = Card::findByShortCode( $short_code_from, true );
             $card_to = Card::findByShortCode( $short_code_to, true );
 
-            if( $card_from->getBalance() == 0 ){
+            if( empty( $card_from ) || empty( $card_to ) || abs( $card_from->getBalance() ) < 0.005 ){
                 return false;
             }
 

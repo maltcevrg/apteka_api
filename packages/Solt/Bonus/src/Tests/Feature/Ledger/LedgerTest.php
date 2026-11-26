@@ -135,16 +135,17 @@ class LedgerTest extends TestCase
         $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => 0]);
     }
 
-    public function test_cancel_increase_with_insufficient_balance_is_rejected()
+    public function test_cancel_increase_with_insufficient_balance_goes_negative()
     {
         $p = $this->payload($this->pharmacyA, '100');
         $this->postJson(route('api.bonus.increase.store'), $p)->assertStatus(201);
         $this->postJson(route('api.bonus.decrease.store'), $this->payload($this->pharmacyA, '-80'))->assertStatus(201);
 
-        // Отмена начисления на 100 увела бы карту в минус (20 − 100)
-        $this->postJson(route('api.bonus.increase.cancel'), $this->cancelPayload($p))->assertStatus(202);
-        $this->assertNull(CardOperation::where('card_id', $this->card->id)->orderBy('id')->first()->deleted_at);
-        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => 20]);
+        // Отмена начисления на 100 уводит карту в минус (20 − 100 = −80) — допустимо
+        $this->postJson(route('api.bonus.increase.cancel'), $this->cancelPayload($p))->assertStatus(204);
+        $this->assertNotNull(CardOperation::where('card_id', $this->card->id)->orderBy('id')->first()->deleted_at);
+        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => -80]);
+        $this->assertSame([], LedgerService::checkCard($this->card->id));
     }
 
     public function test_document_number_can_be_reused_after_cancel()

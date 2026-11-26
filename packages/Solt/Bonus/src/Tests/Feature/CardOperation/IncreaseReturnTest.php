@@ -83,7 +83,8 @@ class IncreaseReturnTest extends TestCase
             'amount'            => '-0.10'
         ];
 
+        // возврат начисления с пустой карты проходит — баланс уходит в минус
         $this->postJson(route('api.bonus.increase.return'), $payload)
-            ->assertStatus(202);
+            ->assertStatus(201)->assertJson(['balance_after' => -0.1]);
     }
 }

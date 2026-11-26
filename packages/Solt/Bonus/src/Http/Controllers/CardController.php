@@ -97,7 +97,7 @@ class CardController extends Controller{
     function increase( IncreaseRequest $request ){
         $new_card_operation = $this->card_operation_service->store( $request->all() );
         if( $new_card_operation === false ){
-            return response(['message' => 'Нулевой баланс'], 202);
+            return response(['message' => 'Карта не найдена или не действует'], 202);
         }
         return response($new_card_operation->toJson(), 201);
     }
@@ -110,7 +110,7 @@ class CardController extends Controller{
     function increaseReturn( IncreaseReturnRequest $request ){
         $new_card_operation = $this->card_operation_service->store( $request->all() );
         if( $new_card_operation === false ){
-            return response(['message' => 'Нулевой баланс'], 202);
+            return response(['message' => 'Карта не найдена или не действует'], 202);
         }
         return response($new_card_operation->toJson(), 201);
     }
@@ -136,7 +136,7 @@ class CardController extends Controller{
     function decrease( DecreaseRequest $request ){
         $new_card_operation = $this->card_operation_service->store( $request->all() );
         if( $new_card_operation === false ){
-            return response(['message' => 'Нулевой баланс'], 202);
+            return response(['message' => 'Карта не найдена или не действует'], 202);
         }
         return response($new_card_operation->toJson(), 201);
     }
@@ -149,7 +149,7 @@ class CardController extends Controller{
     function decreaseReturn( DecreaseReturnRequest $request ){
         $new_card_operation = $this->card_operation_service->store( $request->all() );
         if( $new_card_operation === false ){
-            return response(['message' => 'Нулевой баланс'], 202);
+            return response(['message' => 'Карта не найдена или не действует'], 202);
         }
         return response($new_card_operation->toJson(), 201);
     }
