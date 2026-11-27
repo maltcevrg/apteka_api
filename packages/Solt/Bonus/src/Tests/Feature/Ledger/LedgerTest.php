@@ -154,8 +154,11 @@ class LedgerTest extends TestCase
         $this->postJson(route('api.bonus.increase.store'), $p)->assertStatus(201);
         $this->postJson(route('api.bonus.increase.cancel'), $this->cancelPayload($p))->assertStatus(204);
 
+        // новая строка датирована 04.07, сторно — сегодняшним числом, поэтому в хронологии
+        // она стоит до сторно: остаток после неё 115, текущий баланс 15
         $this->postJson(route('api.bonus.increase.store'), $this->payload($this->pharmacyA, '15', '777777777777'))
-            ->assertStatus(201)->assertJson(['balance_after' => 15]);
+            ->assertStatus(201)->assertJson(['balance_after' => 115, 'balance' => 15]);
+        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => 15]);
     }
 
     public function test_move_transfers_each_wallet_with_running_totals()
@@ -188,13 +191,17 @@ class LedgerTest extends TestCase
         $this->assertSame([], LedgerService::checkCard($target->id));
     }
 
-    public function test_backdated_document_does_not_break_chain()
+    public function test_backdated_document_is_placed_by_date_and_rebuilds_chain()
     {
         $this->postJson(route('api.bonus.increase.store'), $this->payload($this->pharmacyA, '100'))->assertStatus(201);
         $old = $this->payload($this->pharmacyA, '5');
         $old['document_date'] = '01.01.2020';
-        $this->postJson(route('api.bonus.increase.store'), $old)->assertStatus(201)->assertJson(['balance_after' => 105]);
+        // документ 2020 года встаёт первым: остаток после него 5, текущий баланс 105
+        $this->postJson(route('api.bonus.increase.store'), $old)->assertStatus(201)->assertJson(['balance_after' => 5, 'balance' => 105]);
 
+        $this->assertEquals(105, $this->card->fresh()->getBalance());
+        $first = LedgerService::chronological(CardOperation::where('card_id', $this->card->id))->first();
+        $this->assertEquals(5, $first->amount);
         $this->assertSame([], LedgerService::checkCard($this->card->id));
     }
 
