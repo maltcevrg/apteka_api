@@ -279,4 +279,26 @@ class CardsAndLogTest extends TestCase
         $this->actingAs($this->viewer());
         $this->post("/admin/cards/{$card->id}/profile", ['firstname' => 'X', 'gender' => 0])->assertForbidden();
     }
+
+    public function test_check_lists_broken_cards_with_rebuild_buttons()
+    {
+        [$card] = $this->cardWithBalance(100);
+        $first = CardOperation::where('card_id', $card->id)->first();
+        DB::table('card_operations')->where('id', $first->id)->update(['amount' => 50]);
+
+        $this->actingAs($this->admin());
+        $this->post('/admin/operations/check')->assertRedirect();
+        $this->get('/admin/operations')->assertOk()->assertSee('Карты с разрывами: 1')->assertSee('TEST0001')->assertSee('Пересчитать все');
+
+        $this->post('/admin/operations/rebuild-all')->assertSessionHas('success');
+        $this->assertSame([], LedgerService::checkCard($card->id));
+        $this->get('/admin/operations')->assertOk()->assertDontSee('Карты с разрывами')->assertSee('целая');
+
+        // editor видит список, но без кнопок
+        DB::table('card_operations')->where('id', $first->id)->update(['amount' => 70]);
+        $this->actingAs($this->editor());
+        $this->post('/admin/operations/check')->assertRedirect();
+        $this->get('/admin/operations')->assertOk()->assertSee('Карты с разрывами: 1')->assertDontSee('Пересчитать все');
+        $this->post('/admin/operations/rebuild-all')->assertForbidden();
+    }
 }

@@ -32,7 +32,38 @@
     <form method="post" action="{{ route('admin.operations.check') }}">@csrf<button class="btn secondary" type="submit">Проверить сейчас</button></form>
     @endif
   </div>
-  @if (session('success') || session('error'))<pre style="margin-top:10px;">{{ session('success') ?? session('error') }}</pre>@endif
+  @if ($last_check && !($last_check->details['ok'] ?? false) && !empty($last_check->details['broken']))
+    @php($broken = $last_check->details['broken'])
+    <div class="flash error" style="margin-top:12px;">
+      <div class="row" style="justify-content:space-between;">
+        <b>Карты с разрывами: {{ count($broken) }}</b>
+        @if (auth()->user()->isAdmin())
+        <form method="post" action="{{ route('admin.operations.rebuild-all') }}" onsubmit="return confirm('Пересчитать остатки по суммам у всех {{ count($broken) }} карт? Суммы операций не изменятся, поля «остаток» будут перезаписаны. Действие записывается в журнал.');">
+          @csrf<button class="btn danger" type="submit">Пересчитать все</button>
+        </form>
+        @endif
+      </div>
+      <table style="margin-top:8px; background:#fff;">
+        <thead><tr><th>Карта</th><th class="num">Строк с разрывом</th><th></th></tr></thead>
+        <tbody>
+        @foreach ($broken as $b)
+          <tr>
+            <td><a href="{{ route('admin.cards.show', $b['id']) }}"><code>{{ $b['short_code'] }}</code></a></td>
+            <td class="num">{{ $b['errors'] }}</td>
+            <td style="text-align:right;">
+              @if (auth()->user()->isAdmin())
+              <form method="post" action="{{ route('admin.cards.rebuild', $b['id']) }}" style="display:inline;" onsubmit="return confirm('Пересчитать остатки карты {{ $b['short_code'] }} по суммам?');">
+                @csrf<button class="btn small secondary" type="submit">Пересчитать</button>
+              </form>
+              @endif
+            </td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+      <div class="muted" style="font-size:13px; margin-top:6px;">Список — на момент последней проверки. Истиной при пересчёте считаются суммы операций; балансы карт не меняются.</div>
+    </div>
+  @endif
 </div>
 
 <div class="card">
