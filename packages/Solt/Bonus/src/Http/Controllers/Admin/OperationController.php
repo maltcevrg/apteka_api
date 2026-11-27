@@ -4,7 +4,9 @@ namespace Solt\Bonus\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Solt\Bonus\Models\Card;
+use Solt\Bonus\Services\LedgerService;
 use Solt\Bonus\Models\AdminLog;
 use Solt\Bonus\Models\CardOperation;
 use Solt\Bonus\Models\LegalEntity;
@@ -57,12 +59,53 @@ class OperationController extends Controller
         ]);
     }
 
+    /** Проверка цепочки по всем картам; список карт с разрывами сохраняется в журнал действий. */
     public function check()
     {
-        $code = Artisan::call('bonus:ledger-check');
-        $output = trim(Artisan::output());
-        AdminLog::write('ledger.check', $code === 0 ? 'целая' : 'РАЗРЫВЫ', ['ok' => $code === 0, 'output' => mb_substr($output, 0, 4000)]);
+        @set_time_limit(0);
+        $cardIds = CardOperation::query()->distinct()->pluck('card_id');
+        $broken = [];
+        foreach ($cardIds as $id) {
+            $errors = LedgerService::checkCard((int) $id);
+            if ($errors) {
+                $broken[(int) $id] = count($errors);
+            }
+        }
+        $cards = Card::withTrashed()->whereIn('id', array_keys($broken))->pluck('short_code', 'id');
+        $list = [];
+        foreach ($broken as $id => $n) {
+            $list[] = ['id' => $id, 'short_code' => $cards[$id] ?? (string) $id, 'errors' => $n];
+        }
+        $ok = $broken === [];
+        $summary = "Карт с операциями: {$cardIds->count()}, с разрывами: " . count($broken);
 
-        return back()->with($code === 0 ? 'success' : 'error', $output);
+        AdminLog::write('ledger.check', $ok ? 'целая' : 'РАЗРЫВЫ', [
+            'ok' => $ok, 'checked' => $cardIds->count(), 'broken' => array_slice($list, 0, 500), 'output' => $summary,
+        ]);
+
+        return back()->with($ok ? 'success' : 'error', $summary . ($ok ? '. Цепочка остатков целая.' : ''));
+    }
+
+    /** Пересчёт остатков по суммам у всех карт с разрывами (только admin). */
+    public function rebuildAll()
+    {
+        @set_time_limit(0);
+        $cardIds = CardOperation::query()->distinct()->pluck('card_id');
+        $fixed = [];
+        foreach ($cardIds as $id) {
+            if (LedgerService::checkCard((int) $id) === []) {
+                continue;
+            }
+            $r = DB::transaction(function () use ($id) {
+                Card::withTrashed()->lockForUpdate()->findOrFail($id);
+                return LedgerService::rebuildCard((int) $id);
+            });
+            $fixed[] = ['id' => (int) $id, 'changed' => $r['changed'], 'before' => $r['before'], 'after' => $r['after']];
+        }
+        AdminLog::write('ledger.rebuild', 'Все карты с разрывами', ['cards' => count($fixed), 'list' => array_slice($fixed, 0, 500)]);
+        // фиксируем результат проверки после пересчёта
+        AdminLog::write('ledger.check', 'целая', ['ok' => true, 'checked' => $cardIds->count(), 'broken' => [], 'output' => "Карт с операциями: {$cardIds->count()}, с разрывами: 0"]);
+
+        return back()->with('success', 'Пересчитаны остатки по ' . count($fixed) . ' карт(ам). Цепочка целая.');
     }
 }

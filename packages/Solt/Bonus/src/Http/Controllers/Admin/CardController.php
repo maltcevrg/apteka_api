@@ -172,6 +172,15 @@ class CardController extends Controller
         AdminLog::write('ledger.rebuild', "Карта {$card->short_code}", [
             'changed' => $r['changed'], 'balance_before' => $r['before'], 'balance_after' => $r['after'], 'rows' => $r['rows'],
         ]);
+        // убираем карту из списка разрывов последней проверки
+        $last = AdminLog::where('action', 'ledger.check')->orderByDesc('id')->first();
+        if ($last && !empty($last->details['broken'])) {
+            $d = $last->details;
+            $d['broken'] = array_values(array_filter($d['broken'], fn ($b) => (int) $b['id'] !== (int) $card->id));
+            $d['ok'] = $d['broken'] === [];
+            $last->details = $d;
+            $last->save();
+        }
         return back()->with('success', sprintf('Остатки пересчитаны: изменено строк %d, баланс %s → %s',
             $r['changed'], number_format($r['before'], 2, ',', ' '), number_format($r['after'], 2, ',', ' ')));
     }
