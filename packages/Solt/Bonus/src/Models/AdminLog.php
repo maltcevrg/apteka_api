@@ -36,6 +36,7 @@ class AdminLog extends Model
         'client.create'        => 'Касса (клиент API): создана',
         'client.secret'        => 'Касса: новый секрет',
         'client.revoke'        => 'Касса: отозвана',
+        'card.update'          => 'Карта: анкета изменена',
         'ledger.check'         => 'Проверка цепочки остатков',
         'ledger.rebuild'       => 'Пересчёт остатков карты',
     ];

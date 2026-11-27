@@ -14,11 +14,32 @@
 </div>
 
 <div class="card" style="margin-top:18px;">
+  @if ($canEdit)
+  <form method="post" action="{{ route('admin.cards.profile', $card) }}">
+    @csrf
+    <div class="row">
+      <div class="field"><label>Фамилия</label><input type="text" name="lastname" value="{{ old('lastname', $card->lastname) }}" style="width:180px;"></div>
+      <div class="field"><label>Имя *</label><input type="text" name="firstname" value="{{ old('firstname', $card->firstname) }}" required style="width:160px;"></div>
+      <div class="field"><label>Отчество</label><input type="text" name="name" value="{{ old('name', $card->name) }}" style="width:180px;"></div>
+      <div class="field"><label>Дата рождения</label><input type="date" name="birthdate" value="{{ old('birthdate', $card->birthdate ? \Carbon\Carbon::parse($card->birthdate)->format('Y-m-d') : '') }}"></div>
+      <div class="field"><label>Пол</label><select name="gender">@foreach (\Solt\Bonus\Models\Card::$genders as $k => $v)<option value="{{ $k }}" @selected((string) old('gender', $card->gender) === (string) $k)>{{ $v }}</option>@endforeach</select></div>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <div class="field"><label>Телефон</label><input type="text" name="phone" value="{{ old('phone', $card->phone) }}" style="width:170px;"></div>
+      <div class="field"><label>E-mail</label><input type="text" name="email" value="{{ old('email', $card->email) }}" style="width:220px;"></div>
+      <div class="field"><label>Город</label><input type="text" name="city" value="{{ old('city', $card->city) }}" style="width:180px;"></div>
+      <div class="field"><label>&nbsp;</label><label><input type="checkbox" name="newsletter_agree" value="1" @checked(old('newsletter_agree', $card->newsletter_agree))> согласие на рассылку</label></div>
+      <button class="btn secondary" type="submit">Сохранить анкету</button>
+    </div>
+  </form>
+  <table style="margin-top:12px;">
+  @else
   <table>
     <tr><th style="width:220px;">ФИО</th><td>{{ $card->lastname }} {{ $card->firstname }} {{ $card->name }}</td></tr>
     <tr><th>Телефон / e-mail</th><td>{{ $card->phone ?: '—' }} {{ $card->email ? ' / ' . $card->email : '' }}</td></tr>
     <tr><th>Дата рождения / пол / город</th><td>{{ $card->birthdate ? \Carbon\Carbon::parse($card->birthdate)->format('d.m.Y') : '—' }} / {{ \Solt\Bonus\Models\Card::$genders[$card->gender] ?? '—' }} / {{ $card->city ?: '—' }}</td></tr>
-    <tr><th>Юрлицо-владелец</th><td>{{ $card->legal_entity ? $card->legal_entity->inn . ' — ' . $card->legal_entity->name : '—' }}</td></tr>
+  @endif
+    <tr><th style="width:220px;">Юрлицо-владелец</th><td>{{ $card->legal_entity ? $card->legal_entity->inn . ' — ' . $card->legal_entity->name : '—' }}</td></tr>
     <tr><th>GUID (1С) / рассылка</th><td>{{ $card->guid ?: '—' }} / {{ $card->newsletter_agree ? 'да' : 'нет' }}</td></tr>
     <tr><th>Создана / изменена</th><td>{{ $card->created_at?->format('d.m.Y H:i') }} / {{ $card->updated_at?->format('d.m.Y H:i') }}</td></tr>
   </table>
@@ -84,7 +105,7 @@
     @forelse ($operations as $op)
       <tr style="{{ $op->deleted_at ? 'opacity:.55;' : '' }}">
         <td>{{ $op->id }}</td>
-        <td>{{ \Carbon\Carbon::parse($op->document_date)->format('d.m.Y') }}</td>
+        <td>{{ \Carbon\Carbon::parse($op->document_date)->format('d.m.Y') }}@if ($op->document_time) <span class="muted">{{ substr($op->document_time, 0, 5) }}</span>@endif</td>
         <td class="muted">{{ $op->created_at?->format('d.m.Y H:i') }}</td>
         <td>{{ $actions[$op->action] ?? $op->action }}@if ($op->parent_id) <span class="muted">→ №{{ $op->parent_id }}</span>@endif</td>
         <td>{{ $op->document_type }} {{ $op->document_number }}</td>

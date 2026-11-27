@@ -21,11 +21,14 @@ class CardOperationResource extends JsonResource
             'pharmacy'          => new PharmacyResource( $this->whenLoaded('pharmacy') ),
             'action'            => $this->action,
             'document_date'     => $this->document_date,
+            'document_time'     => $this->document_time,
             'document_number'   => $this->document_number,
             'document_type'     => $this->document_type,
             'amount'            => $this->amount,
             'amount_requested'  => $this->amount_requested,
             'offline'           => (bool) $this->offline,
+            // true — документ уже был проведён раньше, это повтор запроса; ничего не изменилось
+            'duplicate'         => (bool) ($this->duplicate ?? false),
             // остаток после этой операции в хронологии журнала (для документа задним числом — на его дату)
             'balance_after'     => $this->card_after,
             // текущий баланс карты (последняя строка по хронологии)

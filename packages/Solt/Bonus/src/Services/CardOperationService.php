@@ -40,6 +40,21 @@ class CardOperationService implements CardOperationInterface{
             if( empty( $card ) ){
                 return false; // карта удалена или аннулирована
             }
+            $pharmacy = Pharmacy::findByNumber( $data['pharmacy_number'] );
+
+            // Повтор того же документа (касса не дождалась ответа и прислала снова):
+            // возвращаем уже записанную операцию, ничего не дублируя.
+            $dup = CardOperation::findDuplicate( $pharmacy?->id, (string) $data['document_number'], (string) $data['document_type'], (int) $data['action'] );
+            if( $dup ){
+                if( (int) $dup->card_id !== (int) $card->id ){
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'document_number' => "Документ {$data['document_type']} №{$data['document_number']} аптеки {$data['pharmacy_number']} уже проведён по другой карте",
+                    ]);
+                }
+                $dup->setAttribute('duplicate', true);
+                return new CardOperationResource( $dup );
+            }
+
             // Баланс может уходить в минус: ограничений по остатку нет,
             // списывается ровно запрошенная сумма. Флаг offline — только пометка.
             $amount = round((float) $data['amount'], 2);
@@ -48,7 +63,7 @@ class CardOperationService implements CardOperationInterface{
             $card_operation = LedgerService::append(
                 $card,
                 LegalEntity::findByInn( $data['inn'] ),
-                Pharmacy::findByNumber( $data['pharmacy_number'] ),
+                $pharmacy,
                 (int) $data['action'],
                 $amount,
                 $data
@@ -63,15 +78,17 @@ class CardOperationService implements CardOperationInterface{
      * на исходную; исходная помечается deleted_at («погашена»).
      * @inheritcod
      */
-    function delete( String $short_code, String $document_number, String $document_type, bool $offline = false ) : Bool {
-        return DB::transaction(function () use ($short_code, $document_number, $document_type, $offline) {
+    function delete( String $short_code, String $document_number, String $document_type, bool $offline = false, $pharmacy_number = null ) : Bool {
+        return DB::transaction(function () use ($short_code, $document_number, $document_type, $offline, $pharmacy_number) {
             $card = Card::findByShortCode( $short_code, true );
             if( empty( $card ) ){
                 return false;
             }
-            $original = CardOperation::findByRequisites( $short_code, $document_number, $document_type );
-            if( empty( $original ) || $original->action == CardOperation::$cancel_action ){
-                return false;
+            $original = CardOperation::findByRequisites( $short_code, $document_number, $document_type, $pharmacy_number );
+            if( empty( $original ) ){
+                // Повтор отмены: документ уже погашен сторно — отвечаем успехом, второй раз не сторнируем.
+                $gone = CardOperation::findByRequisites( $short_code, $document_number, $document_type, $pharmacy_number, true );
+                return $gone && $gone->deleted_at && CardOperation::where('parent_id', $gone->id)->exists();
             }
             // Сторно всегда на полную сумму — баланс может стать отрицательным.
             $amount = -1 * (float) $original->amount;
@@ -84,6 +101,7 @@ class CardOperationService implements CardOperationInterface{
                 $amount,
                 [
                     'document_date'   => now()->format('Y-m-d'),
+                    'document_time'   => now()->format('H:i:s'),
                     'document_number' => $original->document_number,
                     'document_type'   => $original->document_type,
                     'offline'         => $offline,
@@ -115,6 +133,7 @@ class CardOperationService implements CardOperationInterface{
             $document = [
                 'document_number' => $document_number,
                 'document_date'   => $document_date,
+                'document_time'   => now()->format('H:i:s'),
                 'document_type'   => $document_type,
             ];
 

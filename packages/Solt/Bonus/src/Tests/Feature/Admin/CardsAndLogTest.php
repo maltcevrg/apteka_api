@@ -250,4 +250,33 @@ class CardsAndLogTest extends TestCase
         $this->assertSame([], LedgerService::checkCard($card->id));
         $this->assertEqualsWithDelta(30, $card->fresh()->getBalance(), 0.001);
     }
+
+    public function test_profile_edit_and_negative_cards_page()
+    {
+        [$card, $le] = $this->cardWithBalance(10);
+        $this->actingAs($this->editor());
+
+        $this->post("/admin/cards/{$card->id}/profile", [
+            'firstname' => 'Анна', 'lastname' => 'Денисова', 'name' => '', 'phone' => '+79139465878', 'email' => 'a@b.ru',
+            'city' => 'Новосибирск', 'gender' => 1, 'birthdate' => '1990-05-01', 'newsletter_agree' => 1,
+        ])->assertSessionHas('success');
+        $card->refresh();
+        $this->assertSame('Денисова', $card->lastname);
+        $this->assertSame('+79139465878', $card->phone);
+        $this->assertTrue((bool) $card->newsletter_agree);
+        $this->assertDatabaseHas('admin_logs', ['action' => 'card.update']);
+
+        $this->post("/admin/cards/{$card->id}/profile", ['firstname' => 'Анна', 'gender' => 1, 'phone' => 'abc'])->assertSessionHasErrors('phone');
+
+        // в минус
+        $this->get('/admin/cards-negative')->assertOk()->assertSee('нет');
+        $this->post("/admin/cards/{$card->id}/adjust", ['amount' => '-40', 'legal_entity_id' => $le->id, 'comment' => 'тест минуса'])->assertSessionHas('success');
+        $this->get('/admin/cards-negative')->assertOk()->assertSee('TEST0001')->assertSee('-30,00');
+        $csv = $this->get('/admin/cards-negative?csv=1')->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('TEST0001', $csv->getContent());
+        $this->get('/admin')->assertOk()->assertSee('Карты в минусе');
+
+        $this->actingAs($this->viewer());
+        $this->post("/admin/cards/{$card->id}/profile", ['firstname' => 'X', 'gender' => 0])->assertForbidden();
+    }
 }

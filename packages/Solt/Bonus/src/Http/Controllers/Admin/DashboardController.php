@@ -35,6 +35,10 @@ class DashboardController extends Controller
                 'offline'  => (clone $today)->where('offline', true)->count(),
                 'partial'  => (clone $today)->whereNotNull('amount_requested')->count(),
             ],
+            'negative'     => (function () {
+                $r = DB::selectOne('SELECT COUNT(*) AS cnt, COALESCE(SUM(balance), 0) AS total FROM (SELECT card_id, SUM(amount) AS balance FROM card_operations GROUP BY card_id HAVING SUM(amount) < -0.004) t');
+                return ['count' => (int) $r->cnt, 'total' => (float) $r->total];
+            })(),
             'last_check'   => AdminLog::where('action', 'ledger.check')->orderByDesc('id')->first(),
             'last_token'   => DB::table('oauth_access_tokens')->max('created_at'),
             'log_errors'   => self::recentLogErrors(),

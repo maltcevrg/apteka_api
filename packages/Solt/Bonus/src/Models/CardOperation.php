@@ -21,6 +21,7 @@ class CardOperation extends Model
     protected $fillable = [
         'action',
         'document_date',
+        'document_time',
         'document_number',
         'document_type',
         'amount',
@@ -71,10 +72,7 @@ class CardOperation extends Model
         // Строка задним числом (не через LedgerService::append, например из фабрики/импорта):
         // остатки более поздних строк карты пересчитываются, чтобы цепочка оставалась хронологической.
         static::created(function (CardOperation $operation) {
-            $docDate = substr((string) $operation->document_date, 0, 10);
-            $later = static::where('card_id', $operation->card_id)
-                ->whereDate('document_date', '>', $docDate)->exists();
-            if ($later) {
+            if (\Solt\Bonus\Services\LedgerService::isBackdated((int) $operation->card_id, (string) $operation->document_date, $operation->document_time, $operation->id)) {
                 \Solt\Bonus\Services\LedgerService::rebuildCard((int) $operation->card_id);
                 $operation->refresh();
             }
@@ -106,10 +104,31 @@ class CardOperation extends Model
      * @param String $document_type
      * @return CardOperation
      */
-    static function findByRequisites( $short_code, $document_number, $document_type ){
-        return self::whereHas('card', function ( $query ) use ($short_code) {
+    static function findByRequisites( $short_code, $document_number, $document_type, $pharmacy_number = null, bool $withDeleted = false ){
+        $q = self::whereHas('card', function ( $query ) use ($short_code) {
             $query->where('short_code', $short_code);
-        })->whereNull('deleted_at')->where('document_number', $document_number)->where('document_type', $document_type)->first();
+        })->where('document_number', $document_number)->where('document_type', $document_type)
+          ->where('action', '!=', self::$cancel_action);
+        if( !$withDeleted ){
+            $q->whereNull('deleted_at');
+        }
+        if( $pharmacy_number !== null && $pharmacy_number !== '' ){
+            $q->whereHas('pharmacy', fn ($p) => $p->where('number', (int) $pharmacy_number));
+        }
+        return $q->orderByDesc('id')->first();
+    }
+
+    /**
+     * Уже проведённый документ той же аптеки (повтор запроса от кассы).
+     * Ключ: аптека + номер + тип + вид операции, не погашенный.
+     */
+    static function findDuplicate( ?int $pharmacy_id, string $document_number, string $document_type, int $action ){
+        return self::where('pharmacy_id', $pharmacy_id)
+            ->where('document_number', $document_number)
+            ->where('document_type', $document_type)
+            ->where('action', $action)
+            ->whereNull('deleted_at')
+            ->first();
     }
 
     /**

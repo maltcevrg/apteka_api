@@ -42,7 +42,7 @@
     @forelse ($operations as $op)
       <tr style="{{ $op->deleted_at ? 'opacity:.55;' : '' }}">
         <td>{{ $op->id }}</td>
-        <td>{{ \Carbon\Carbon::parse($op->document_date)->format('d.m.Y') }}</td>
+        <td>{{ \Carbon\Carbon::parse($op->document_date)->format('d.m.Y') }}@if ($op->document_time) <span class="muted">{{ substr($op->document_time, 0, 5) }}</span>@endif</td>
         <td class="muted">{{ $op->created_at?->format('d.m.Y H:i') }}</td>
         <td>@if ($op->card)<a href="{{ route('admin.cards.show', $op->card) }}"><code>{{ $op->card->short_code }}</code></a>@endif</td>
         <td>{{ $actions[$op->action] ?? $op->action }}@if ($op->parent_id) <span class="muted">→ №{{ $op->parent_id }}</span>@endif</td>
