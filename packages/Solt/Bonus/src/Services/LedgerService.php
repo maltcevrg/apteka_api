@@ -13,8 +13,11 @@ use Solt\Bonus\Models\Pharmacy;
  * Каждая строка card_operations хранит остаток после себя:
  *  - wallet_after — по кошельку (карта + юрлицо),
  *  - card_after   — по карте целиком.
- * Текущий баланс — последняя строка (по id). Порядок — порядок записи,
- * а не дата документа: чек задним числом не требует пересчёта.
+ * Порядок цепочки — ХРОНОЛОГИЧЕСКИЙ: по дате документа, внутри дня — по
+ * порядку записи (id). Текущий баланс — последняя строка в этом порядке.
+ * Если пришёл документ задним числом (офлайн-чек за прошлые дни), он
+ * встаёт на своё место по дате, а остатки всех более поздних строк карты
+ * пересчитываются (rebuildCard) — история читается как выписка.
  *
  * Вызывать только внутри транзакции с заблокированной строкой карты
  * (Card::findByShortCode($code, true)), иначе две параллельные операции
@@ -28,8 +31,15 @@ class LedgerService
     public static function cardBalance(Card|int $card): float
     {
         $cardId = $card instanceof Card ? $card->id : $card;
-        $last = CardOperation::where('card_id', $cardId)->orderByDesc('id')->value('card_after');
+        $last = self::chronological(CardOperation::where('card_id', $cardId), true)->value('card_after');
         return round((float) ($last ?? 0), 2);
+    }
+
+    /** Хронологический порядок: дата документа, затем порядок записи. */
+    public static function chronological($query, bool $desc = false)
+    {
+        $dir = $desc ? 'desc' : 'asc';
+        return $query->orderBy('document_date', $dir)->orderBy('id', $dir);
     }
 
     /**
@@ -38,7 +48,7 @@ class LedgerService
     public static function walletBalance(Card|int $card, ?int $legalEntityId): float
     {
         $cardId = $card instanceof Card ? $card->id : $card;
-        $query = CardOperation::where('card_id', $cardId)->orderByDesc('id');
+        $query = self::chronological(CardOperation::where('card_id', $cardId), true);
         $legalEntityId === null
             ? $query->whereNull('legal_entity_id')
             : $query->where('legal_entity_id', $legalEntityId);
@@ -53,15 +63,15 @@ class LedgerService
     public static function wallets(Card|int $card): array
     {
         $cardId = $card instanceof Card ? $card->id : $card;
-        $lastIds = CardOperation::where('card_id', $cardId)
-            ->selectRaw('MAX(id) AS id')
-            ->groupBy('legal_entity_id');
-
-        $rows = CardOperation::whereIn('id', $lastIds)->get(['legal_entity_id', 'wallet_after']);
-
+        // последняя (хронологически) строка каждого кошелька
         $result = [];
+        $rows = self::chronological(CardOperation::where('card_id', $cardId), true)
+            ->get(['legal_entity_id', 'wallet_after']);
         foreach ($rows as $row) {
-            $result[$row->legal_entity_id ?? ''] = round((float) $row->wallet_after, 2);
+            $key = $row->legal_entity_id ?? '';
+            if (!array_key_exists($key, $result)) {
+                $result[$key] = round((float) $row->wallet_after, 2);
+            }
         }
         return $result;
     }
@@ -105,9 +115,22 @@ class LedgerService
             $operation->parent()->associate($parent);
         }
 
-        $operation->wallet_after = round(self::walletBalance($card, $legalEntityId) + $amount, 2);
-        $operation->card_after   = round(self::cardBalance($card) + $amount, 2);
-        $operation->save();
+        // Документ задним числом? (есть строки карты с более поздней датой)
+        $docDate = substr((string) $document['document_date'], 0, 10);
+        $backdated = CardOperation::where('card_id', $card->id)
+            ->whereDate('document_date', '>', $docDate)->exists();
+
+        if ($backdated) {
+            // Встаёт на своё место по дате; остатки этой и всех последующих строк
+            // пересчитывает хук CardOperation::created (rebuildCard).
+            $operation->wallet_after = 0;
+            $operation->card_after   = 0;
+            $operation->save();
+        } else {
+            $operation->wallet_after = round(self::walletBalance($card, $legalEntityId) + $amount, 2);
+            $operation->card_after   = round(self::cardBalance($card) + $amount, 2);
+            $operation->save();
+        }
 
         // Юрлицо-владелец карты — по первой операции с юрлицом
         if ($card->legal_entity_id === null && $legalEntityId !== null) {
@@ -128,8 +151,9 @@ class LedgerService
         $card = 0.0;
         $wallets = [];
 
-        CardOperation::where('card_id', $cardId)->orderBy('id')
-            ->chunk(1000, function ($rows) use (&$errors, &$card, &$wallets) {
+        $rows = self::chronological(CardOperation::where('card_id', $cardId))->cursor();
+        {
+            {
                 foreach ($rows as $op) {
                     $key = $op->legal_entity_id ?? '';
                     $card = round($card + (float) $op->amount, 2);
@@ -142,14 +166,16 @@ class LedgerService
                         $errors[] = ['id' => $op->id, 'field' => 'wallet_after', 'expected' => $wallets[$key], 'actual' => (float) $op->wallet_after];
                     }
                 }
-            });
+            }
+        }
 
         return $errors;
     }
 
     /**
      * Пересчёт остатков карты: amount каждой строки считается истиной,
-     * card_after / wallet_after перезаписываются нарастающим итогом в порядке id.
+     * card_after / wallet_after перезаписываются нарастающим итогом
+     * в хронологическом порядке (дата документа, затем id).
      * Вызывать внутри транзакции под блокировкой карты.
      *
      * @return array{changed:int, before:float, after:float, rows:array} rows — первые 20 изменённых строк (id, поле, было, стало)
@@ -162,13 +188,11 @@ class LedgerService
         $rows = [];
         $before = 0.0;
 
-        $last = CardOperation::where('card_id', $cardId)->orderByDesc('id')->first();
-        if ($last) {
-            $before = (float) $last->card_after;
-        }
+        $before = self::cardBalance($cardId);
 
-        CardOperation::where('card_id', $cardId)->orderBy('id')->lockForUpdate()
-            ->chunkById(1000, function ($ops) use (&$card, &$wallets, &$changed, &$rows) {
+        $ops = self::chronological(CardOperation::where('card_id', $cardId))->lockForUpdate()->cursor();
+        {
+            {
                 foreach ($ops as $op) {
                     $key = $op->legal_entity_id ?? '';
                     $card = round($card + (float) $op->amount, 2);
@@ -189,7 +213,8 @@ class LedgerService
                         $changed++;
                     }
                 }
-            });
+            }
+        }
 
         return ['changed' => $changed, 'before' => $before, 'after' => $card, 'rows' => $rows];
     }

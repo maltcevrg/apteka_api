@@ -26,7 +26,10 @@ class CardOperationResource extends JsonResource
             'amount'            => $this->amount,
             'amount_requested'  => $this->amount_requested,
             'offline'           => (bool) $this->offline,
-            'balance_after'     => $this->card_after
+            // остаток после этой операции в хронологии журнала (для документа задним числом — на его дату)
+            'balance_after'     => $this->card_after,
+            // текущий баланс карты (последняя строка по хронологии)
+            'balance'           => \Solt\Bonus\Services\LedgerService::cardBalance((int) $this->card_id),
         ];
     }
 }

@@ -56,7 +56,7 @@ class CardController extends Controller
             'card'           => $card,
             'balance'        => $card->getBalance(),
             'wallets'        => $wallets,
-            'operations'     => $card->operations()->with(['legal_entity', 'pharmacy', 'user', 'parent'])->orderByDesc('id')->paginate(50),
+            'operations'     => LedgerService::chronological($card->operations()->with(['legal_entity', 'pharmacy', 'user', 'parent']), true)->paginate(50),
             'legal_entities' => LegalEntity::orderBy('name')->get(),
             'ledger_errors'  => LedgerService::checkCard($card->id),
         ]);

@@ -103,4 +103,33 @@ class OfflineTest extends TestCase
         $this->postJson(route('api.bonus.decrease.store'), $this->payload('-10'))
             ->assertStatus(202)->assertJson(['message' => 'Карта не найдена или не действует']);
     }
+
+    /**
+     * Офлайн-чеки задним числом встают по дате документа, остатки
+     * более поздних строк пересчитываются (пример заказчика).
+     */
+    public function test_backdated_offline_operations_rebuild_running_balances()
+    {
+        // 27.11 онлайн +50
+        $today = $this->payload('50', ['document_date' => '27.11.2026', 'document_number' => 'T1']);
+        $this->postJson(route('api.bonus.increase.store'), $today)->assertStatus(201)->assertJson(['balance_after' => 50]);
+
+        // затем офлайн 02.11 −10 и 04.11 +20
+        $this->postJson(route('api.bonus.decrease.store'), $this->payload('-10', ['offline' => 1, 'document_date' => '02.11.2026', 'document_number' => 'O1']))
+            ->assertStatus(201)->assertJson(['balance_after' => -10]);
+        $this->postJson(route('api.bonus.increase.store'), $this->payload('20', ['offline' => 1, 'document_date' => '04.11.2026', 'document_number' => 'O2']))
+            ->assertStatus(201)->assertJson(['balance_after' => 10]);
+
+        // текущий баланс 60, строка от 27.11 теперь показывает 60
+        $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => 60]);
+        $rows = LedgerService::chronological(CardOperation::where('card_id', $this->card->id))->get();
+        $this->assertSame(['O1', 'O2', 'T1'], $rows->pluck('document_number')->all());
+        $this->assertSame([-10.0, 10.0, 60.0], $rows->pluck('card_after')->all());
+        $this->assertSame([], LedgerService::checkCard($this->card->id));
+
+        // следующая онлайн-операция продолжает цепочку от 60
+        $this->postJson(route('api.bonus.decrease.store'), $this->payload('-5', ['document_date' => '27.11.2026', 'document_number' => 'T2']))
+            ->assertStatus(201)->assertJson(['balance_after' => 55]);
+        $this->assertSame([], LedgerService::checkCard($this->card->id));
+    }
 }
