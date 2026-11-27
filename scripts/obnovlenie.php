@@ -21,6 +21,8 @@
  *     — создать администратора админ-панели (или сбросить ему пароль):
  *       пароль он задаст сам при первом входе на /admin/login.
  *       Можно сразу с паролем: &admin=логин&password=пароль (латиница и цифры, от 8 символов).
+ *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&rebuild=1
+ *     — пересчитать остатки по суммам у всех карт с разрывами (bonus:ledger-rebuild --all).
  *       https://lek-torg.ru/obnovlenie.php?key=ваш_секрет&repair=1
  *     — восстановить таблицу migrations, если её очистили, а остальные таблицы целы
  *       («Table 'users' already exists»): миграции, чьи таблицы/колонки уже есть,
@@ -135,6 +137,9 @@ if (!empty($_GET['schedule'])) {
             $run('bonus:import');
         }
     }
+} elseif (!empty($_GET['rebuild'])) {
+    $run('bonus:ledger-rebuild', ['--all' => true, '--force' => true]);
+    $run('bonus:ledger-check');
 } elseif (!empty($_GET['repair'])) {
     // Таблица migrations пуста/неполна, а структура на месте: помечаем выполненными
     // те миграции, чей результат (таблица или колонка) уже есть в базе.
