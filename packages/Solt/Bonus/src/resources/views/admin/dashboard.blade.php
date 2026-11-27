@@ -22,6 +22,8 @@
     <tr><th>Последний токен выдан кассе</th><td>{{ $last_token ? \Carbon\Carbon::parse($last_token)->format('d.m.Y H:i') : '—' }}</td></tr>
     <tr><th>Сегодня</th><td>{{ $today['count'] }} операций: начислено {{ number_format($today['increase'], 2, ',', ' ') }}, списано {{ number_format(abs($today['decrease']), 2, ',', ' ') }}
         @if ($today['offline'])· офлайн {{ $today['offline'] }}@endif @if ($today['partial'])· <span class="neg">частично проведено {{ $today['partial'] }}</span>@endif</td></tr>
+    <tr><th>Карты в минусе</th>
+      <td>@if ($negative['count'] === 0)<span class="badge ok">нет</span>@else<span class="badge warn">{{ $negative['count'] }}</span> на сумму <span class="neg">{{ number_format($negative['total'], 2, ',', ' ') }}</span> — <a href="{{ route('admin.cards.negative') }}">список</a>@endif</td></tr>
     <tr><th>Проверка цепочки остатков</th>
       <td>@if ($last_check)<span class="badge {{ ($last_check->details['ok'] ?? false) ? 'ok' : 'err' }}">{{ ($last_check->details['ok'] ?? false) ? 'целая' : 'разрывы' }}</span> <span class="muted">{{ $last_check->created_at->format('d.m.Y H:i') }}</span>@else<span class="muted">не выполнялась</span>@endif
         — <a href="{{ route('admin.operations') }}">журнал</a></td></tr>

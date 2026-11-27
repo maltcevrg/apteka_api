@@ -35,11 +35,35 @@ class LedgerService
         return round((float) ($last ?? 0), 2);
     }
 
-    /** Хронологический порядок: дата документа, затем порядок записи. */
+    /** Хронологический порядок: дата документа, время (без времени = начало дня), затем порядок записи. */
     public static function chronological($query, bool $desc = false)
     {
         $dir = $desc ? 'desc' : 'asc';
-        return $query->orderBy('document_date', $dir)->orderBy('id', $dir);
+        return $query->orderBy('document_date', $dir)
+            ->orderByRaw("COALESCE(document_time, '00:00:00') {$dir}")
+            ->orderBy('id', $dir);
+    }
+
+    /**
+     * Есть ли у карты строки, стоящие в хронологии ПОЗЖЕ указанных даты/времени
+     * (т.е. новый документ — задним числом).
+     */
+    public static function isBackdated(int $cardId, string $date, ?string $time, ?int $exceptId = null): bool
+    {
+        $date = substr($date, 0, 10);
+        $time = $time ? substr($time, 0, 8) : '00:00:00';
+        $q = CardOperation::where('card_id', $cardId)
+            ->where(function ($w) use ($date, $time) {
+                $w->whereDate('document_date', '>', $date)
+                  ->orWhere(function ($w2) use ($date, $time) {
+                      $w2->whereDate('document_date', $date)
+                         ->whereRaw("COALESCE(document_time, '00:00:00') > ?", [$time]);
+                  });
+            });
+        if ($exceptId) {
+            $q->where('id', '!=', $exceptId);
+        }
+        return $q->exists();
     }
 
     /**
@@ -95,7 +119,8 @@ class LedgerService
 
         $operation = new CardOperation([
             'action'          => $action,
-            'document_date'   => $document['document_date'],
+            'document_date'   => substr((string) $document['document_date'], 0, 10),
+            'document_time'   => $document['document_time'] ?? null,
             'document_number' => $document['document_number'],
             'document_type'   => $document['document_type'],
             'amount'          => round($amount, 2),
@@ -116,9 +141,7 @@ class LedgerService
         }
 
         // Документ задним числом? (есть строки карты с более поздней датой)
-        $docDate = substr((string) $document['document_date'], 0, 10);
-        $backdated = CardOperation::where('card_id', $card->id)
-            ->whereDate('document_date', '>', $docDate)->exists();
+        $backdated = self::isBackdated($card->id, (string) $document['document_date'], $document['document_time'] ?? null);
 
         if ($backdated) {
             // Встаёт на своё место по дате; остатки этой и всех последующих строк

@@ -123,13 +123,14 @@ class LedgerTest extends TestCase
         $this->assertSame([], LedgerService::checkCard($this->card->id));
     }
 
-    public function test_cancel_twice_is_rejected()
+    public function test_cancel_twice_is_idempotent()
     {
         $p = $this->payload($this->pharmacyA, '100');
         $this->postJson(route('api.bonus.increase.store'), $p)->assertStatus(201);
 
         $this->postJson(route('api.bonus.increase.cancel'), $this->cancelPayload($p))->assertStatus(204);
-        $this->postJson(route('api.bonus.increase.cancel'), $this->cancelPayload($p))->assertStatus(202);
+        // повтор отмены — успех без второго сторно
+        $this->postJson(route('api.bonus.increase.cancel'), $this->cancelPayload($p))->assertStatus(204);
 
         $this->assertCount(2, CardOperation::where('card_id', $this->card->id)->get());
         $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => 0]);

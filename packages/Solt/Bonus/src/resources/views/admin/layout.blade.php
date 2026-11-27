@@ -61,8 +61,9 @@
   <span class="brand">Бонусные карты</span>
   <nav>
     <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Обзор</a>
-    <a href="{{ route('admin.cards') }}" class="{{ request()->routeIs('admin.cards*') ? 'active' : '' }}">Карты</a>
+    <a href="{{ route('admin.cards') }}" class="{{ request()->routeIs('admin.cards') || request()->routeIs('admin.cards.show') ? 'active' : '' }}">Карты</a>
     <a href="{{ route('admin.operations') }}" class="{{ request()->routeIs('admin.operations*') ? 'active' : '' }}">Журнал</a>
+    <a href="{{ route('admin.cards.negative') }}" class="{{ request()->routeIs('admin.cards.negative') ? 'active' : '' }}">В минусе</a>
     <a href="{{ route('admin.pharmacies') }}" class="{{ request()->routeIs('admin.pharmacies*') ? 'active' : '' }}">Аптеки</a>
     <a href="{{ route('admin.legal-entities') }}" class="{{ request()->routeIs('admin.legal-entities*') ? 'active' : '' }}">Юрлица</a>
     @if (auth()->user()->canEdit())

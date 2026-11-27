@@ -37,6 +37,7 @@ Route::group(['prefix' => '/admin', 'middleware' => ['web'], 'as' => 'admin.'], 
         Route::get('/cards', [CardController::class, 'index'])->name('cards');
         Route::get('/cards/{card}', [CardController::class, 'show'])->withTrashed()->name('cards.show');
         Route::get('/operations', [OperationController::class, 'index'])->name('operations');
+        Route::get('/cards-negative', [CardController::class, 'negative'])->name('cards.negative');
         Route::get('/password', [AuthController::class, 'showChangePassword'])->name('password.change');
         Route::post('/password', [AuthController::class, 'changePassword'])->name('password.change.post');
 
@@ -55,6 +56,7 @@ Route::group(['prefix' => '/admin', 'middleware' => ['web'], 'as' => 'admin.'], 
             Route::post('/import', [ImportController::class, 'store'])->name('import.store');
 
             Route::post('/cards/{card}/adjust', [CardController::class, 'adjust'])->withTrashed()->name('cards.adjust');
+            Route::post('/cards/{card}/profile', [CardController::class, 'profile'])->withTrashed()->name('cards.profile');
             Route::post('/cards/{card}/block', [CardController::class, 'block'])->name('cards.block');
             Route::post('/cards/{card}/unblock', [CardController::class, 'unblock'])->withTrashed()->name('cards.unblock');
             Route::post('/cards/{card}/replace', [CardController::class, 'replace'])->withTrashed()->name('cards.replace');

@@ -81,6 +81,7 @@ class CardController extends Controller
                 $amount > 0 ? CardOperation::$increase_action : CardOperation::$decreser_action,
                 $amount, [
                     'document_date'   => now()->format('Y-m-d'),
+                    'document_time'   => now()->format('H:i:s'),
                     'document_number' => 'K' . now()->format('ymdHis'),
                     'document_type'   => self::ADJUST_DOCUMENT_TYPE,
                     'user_id'         => $request->user()->id,
@@ -130,6 +131,7 @@ class CardController extends Controller
             $to   = Card::lockForUpdate()->findOrFail($target->id);
             $document = [
                 'document_date'   => now()->format('Y-m-d'),
+                'document_time'   => now()->format('H:i:s'),
                 'document_number' => 'R' . now()->format('ymdHis'),
                 'document_type'   => self::REPLACE_DOCUMENT_TYPE,
                 'user_id'         => $request->user()->id,
@@ -172,5 +174,70 @@ class CardController extends Controller
         ]);
         return back()->with('success', sprintf('Остатки пересчитаны: изменено строк %d, баланс %s → %s',
             $r['changed'], number_format($r['before'], 2, ',', ' '), number_format($r['after'], 2, ',', ' ')));
+    }
+
+    /** Редактирование анкеты клиента из панели. */
+    public function profile(Request $request, Card $card)
+    {
+        $data = $request->validate([
+            'firstname'        => ['required', 'string', 'max:255'],
+            'name'             => ['nullable', 'string', 'max:255'],
+            'lastname'         => ['nullable', 'string', 'max:255'],
+            'birthdate'        => ['nullable', 'date'],
+            'phone'            => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9]{10,15}$/'],
+            'email'            => ['nullable', 'email', 'max:255'],
+            'city'             => ['nullable', 'string', 'max:255'],
+            'gender'           => ['required', 'integer', 'between:0,1'],
+            'newsletter_agree' => ['nullable', 'boolean'],
+        ], [
+            'phone.regex' => 'Телефон — только цифры, можно с +, например +79139465878',
+        ]);
+        $data['newsletter_agree'] = !empty($data['newsletter_agree']);
+        $data['name'] = $data['name'] ?? '';
+
+        $fields = array_keys($data);
+        $old = $card->only($fields);
+        $card->fill($data);
+        $changes = array_keys($card->getDirty());
+        $card->save();
+
+        if ($changes) {
+            AdminLog::write('card.update', "Карта {$card->short_code}", [
+                'old' => array_intersect_key($old, array_flip($changes)),
+                'new' => $card->only($changes),
+            ]);
+        }
+        return back()->with('success', $changes ? 'Анкета сохранена' : 'Изменений нет');
+    }
+
+    /** Карты с отрицательным балансом. */
+    public function negative(Request $request)
+    {
+        $rows = CardOperation::query()
+            ->selectRaw('card_id, ROUND(SUM(amount), 2) AS balance, COUNT(*) AS ops, MAX(document_date) AS last_date')
+            ->groupBy('card_id')
+            ->havingRaw('SUM(amount) < -0.004')
+            ->orderBy('balance')
+            ->get();
+        $cards = Card::withTrashed()->with('legal_entity')->whereIn('id', $rows->pluck('card_id'))->get()->keyBy('id');
+        $list = $rows->map(fn ($r) => ['card' => $cards[$r->card_id] ?? null, 'balance' => (float) $r->balance, 'ops' => (int) $r->ops, 'last_date' => $r->last_date])
+            ->filter(fn ($r) => $r['card'] !== null)->values();
+
+        if ($request->boolean('csv')) {
+            $out = fopen('php://temp', 'r+');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, ['Карта', 'Фамилия', 'Имя', 'Телефон', 'Юрлицо', 'Баланс', 'Операций', 'Последний документ', 'Статус'], ';');
+            foreach ($list as $r) {
+                $c = $r['card'];
+                fputcsv($out, [$c->short_code, $c->lastname, $c->firstname, $c->phone, $c->legal_entity?->inn, number_format($r['balance'], 2, ',', ''), $r['ops'], $r['last_date'], Card::$statuses[$c->status] ?? $c->status], ';');
+            }
+            rewind($out);
+            return response(stream_get_contents($out), 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="cards_negative_' . now()->format('Y-m-d') . '.csv"',
+            ]);
+        }
+
+        return view('bonus::admin.negative', ['list' => $list, 'total' => $list->sum('balance')]);
     }
 }

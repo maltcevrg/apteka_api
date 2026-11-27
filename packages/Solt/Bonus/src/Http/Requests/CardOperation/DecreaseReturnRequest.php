@@ -20,7 +20,8 @@ class DecreaseReturnRequest extends FormRequest{
             'pharmacy_number'   => ['required', 'numeric', 'between:1,99', 'exists:pharmacies,number'],
             'inn'               => ['required', 'regex:/^[0-9]{10,20}$/i', 'exists:legal_entities,inn'],
             'document_date'     => ['required', 'date'],
-            'document_number'   => ['required', 'string', 'max:12', 'unique:card_operations,document_number,NULL,id,deleted_at,NULL,action,!5'],
+            'document_number'   => ['required', 'string', 'max:12'],
+            'document_time'     => ['sometimes', 'nullable', 'date_format:H:i,H:i:s'],
             'document_type'     => ['required', 'string', 'max:40'],
             'offline'           => ['sometimes', 'boolean'],
             'amount'            => ['required', 'numeric', 'min:0.01']
@@ -29,7 +30,15 @@ class DecreaseReturnRequest extends FormRequest{
 
     protected function passedValidation()
     {
-        $this->merge(['document_date' => Carbon::parse($this->document_date)->format('Y-m-d H:i:s')]);
+        $date = Carbon::parse($this->document_date);
+        $time = $this->input('document_time');
+        if (!$time && ($date->hour || $date->minute || $date->second)) {
+            $time = $date->format('H:i:s'); // время передано внутри даты
+        }
+        if (!$time && !$this->boolean('offline')) {
+            $time = now()->format('H:i:s'); // онлайн-чек — сейчас
+        }
+        $this->merge(['document_date' => $date->format('Y-m-d'), 'document_time' => $time ?: null]);
         $this->merge(['action' => CardOperation::$decreser_return_action]);
     }
 }

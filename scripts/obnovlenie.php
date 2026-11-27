@@ -169,6 +169,7 @@ if (!empty($_GET['schedule'])) {
         '2026_12_04_000001_users_login'                                => ['users', 'login'],
         '2026_12_05_000001_users_roles'                                => ['users', 'role'],
         '2026_12_06_000001_admin_logs_and_operation_author'            => ['admin_logs', null],
+        '2026_12_08_000001_card_operations_document_time'              => ['card_operations', 'document_time'],
     ];
     $done = $db::table('migrations')->pluck('migration')->all();
     $batch = (int) $db::table('migrations')->max('batch') + 1;

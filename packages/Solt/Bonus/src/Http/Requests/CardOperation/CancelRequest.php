@@ -17,6 +17,7 @@ class CancelRequest extends FormRequest{
         return [
             'short_code'        => ['required', 'string', 'exists:cards,short_code', 'min:9', 'max:13'],
             'document_date'     => ['required', 'date'],
+            'pharmacy_number'   => ['sometimes', 'nullable', 'numeric', 'between:1,99'],
             'document_number'   => ['required', 'string', 'max:12', 'exists:card_operations,document_number'],
             'document_type'     => ['required', 'string', 'max:40'],
             'offline'           => ['sometimes', 'boolean'],

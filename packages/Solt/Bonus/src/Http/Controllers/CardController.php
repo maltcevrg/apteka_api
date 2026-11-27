@@ -121,7 +121,7 @@ class CardController extends Controller{
      * @return Response
      */
     function cancel( CancelRequest $request ){
-        $cancel_card_operation = $this->card_operation_service->delete( $request->input('short_code'), $request->input('document_number'), $request->input('document_type'), $request->boolean('offline') );
+        $cancel_card_operation = $this->card_operation_service->delete( $request->input('short_code'), $request->input('document_number'), $request->input('document_type'), $request->boolean('offline'), $request->input('pharmacy_number') );
         if( $cancel_card_operation ){
             return response(['message' => 'Операция успешно отменена'], 204);
         }
