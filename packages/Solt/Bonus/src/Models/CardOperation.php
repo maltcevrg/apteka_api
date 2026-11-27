@@ -119,11 +119,13 @@ class CardOperation extends Model
     }
 
     /**
-     * Уже проведённый документ той же аптеки (повтор запроса от кассы).
-     * Ключ: аптека + номер + тип + вид операции, не погашенный.
+     * Уже проведённый документ (повтор запроса от кассы).
+     * Ключ: аптека + номер + тип + вид операции + карта, не погашенный.
+     * Один документ может содержать много карт (массовое начисление) — это разные операции.
      */
-    static function findDuplicate( ?int $pharmacy_id, string $document_number, string $document_type, int $action ){
+    static function findDuplicate( ?int $pharmacy_id, string $document_number, string $document_type, int $action, int $card_id ){
         return self::where('pharmacy_id', $pharmacy_id)
+            ->where('card_id', $card_id)
             ->where('document_number', $document_number)
             ->where('document_type', $document_type)
             ->where('action', $action)

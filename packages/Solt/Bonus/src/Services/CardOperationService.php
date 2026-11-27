@@ -44,13 +44,9 @@ class CardOperationService implements CardOperationInterface{
 
             // Повтор того же документа (касса не дождалась ответа и прислала снова):
             // возвращаем уже записанную операцию, ничего не дублируя.
-            $dup = CardOperation::findDuplicate( $pharmacy?->id, (string) $data['document_number'], (string) $data['document_type'], (int) $data['action'] );
+            // Один документ может содержать много карт (массовое начисление) — карта входит в ключ.
+            $dup = CardOperation::findDuplicate( $pharmacy?->id, (string) $data['document_number'], (string) $data['document_type'], (int) $data['action'], (int) $card->id );
             if( $dup ){
-                if( (int) $dup->card_id !== (int) $card->id ){
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'document_number' => "Документ {$data['document_type']} №{$data['document_number']} аптеки {$data['pharmacy_number']} уже проведён по другой карте",
-                    ]);
-                }
                 $dup->setAttribute('duplicate', true);
                 return new CardOperationResource( $dup );
             }

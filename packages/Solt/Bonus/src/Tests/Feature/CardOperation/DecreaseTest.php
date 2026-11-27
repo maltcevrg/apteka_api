@@ -196,7 +196,7 @@ class DecreaseTest extends TestCase
         $card = Card::factory()->create();
         $pharmacy = Pharmacy::factory()->create();
 
-        // тот же документ той же аптеки уже проведён по другой карте
+        // тот же документ той же аптеки уже проведён по другой карте — это допустимо
         $card_operation = CardOperation::factory()->create(['pharmacy_id' => $pharmacy->id, 'document_type' => '12345678901234567890', 'action' => CardOperation::$decreser_action]);
 
         $payload = [
@@ -210,12 +210,7 @@ class DecreaseTest extends TestCase
         ];
 
         $this->postJson(route('api.bonus.decrease.store'), $payload)
-            ->assertStatus(422)
-            ->assertJsonStructure([
-                'errors' => [
-                    'document_number'
-                ]
-            ]);
+            ->assertStatus(201)->assertJson(['duplicate' => false]); // тот же документ, другая карта — отдельная операция (массовое начисление)
     }
 
     /**

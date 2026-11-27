@@ -73,14 +73,25 @@ class IdempotencyTest extends TestCase
         $this->assertSame(2, CardOperation::count());
     }
 
-    public function test_same_document_for_another_card_is_rejected()
+    public function test_one_document_with_many_cards_is_many_operations()
     {
-        $this->postJson(route('api.bonus.increase.store'), $this->payload($this->pharmacyA, '100'))->assertStatus(201);
-        $other = Card::factory()->create();
-        $p = $this->payload($this->pharmacyA, '100');
-        $p['short_code'] = $other->short_code;
-        $this->postJson(route('api.bonus.increase.store'), $p)->assertStatus(422)->assertJsonValidationErrors('document_number');
-        $this->assertSame(1, CardOperation::count());
+        // документ массового начисления: один номер, много карт
+        $cards = Card::factory(3)->create();
+        foreach ($cards as $c) {
+            $p = $this->payload($this->pharmacyA, '100', '000000000555');
+            $p['short_code'] = $c->short_code;
+            $this->postJson(route('api.bonus.increase.store'), $p)->assertStatus(201)->assertJson(['duplicate' => false, 'balance' => 100]);
+        }
+        $this->assertSame(3, CardOperation::count());
+
+        // повтор той же карты в том же документе — дубль
+        $p = $this->payload($this->pharmacyA, '100', '000000000555');
+        $p['short_code'] = $cards[1]->short_code;
+        $this->postJson(route('api.bonus.increase.store'), $p)->assertStatus(201)->assertJson(['duplicate' => true]);
+        $this->assertSame(3, CardOperation::count());
+        foreach ($cards as $c) {
+            $this->getJson(route('api.bonus.balance.get', $c->short_code))->assertJson(['balance' => 100]);
+        }
     }
 
     public function test_repeated_cancel_is_success_and_not_doubled()
