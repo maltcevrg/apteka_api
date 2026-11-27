@@ -121,12 +121,11 @@ class LedgerService
             ->whereDate('document_date', '>', $docDate)->exists();
 
         if ($backdated) {
-            // Встаёт на своё место по дате; остатки этой и всех последующих строк пересчитываются.
+            // Встаёт на своё место по дате; остатки этой и всех последующих строк
+            // пересчитывает хук CardOperation::created (rebuildCard).
             $operation->wallet_after = 0;
             $operation->card_after   = 0;
             $operation->save();
-            self::rebuildCard($card->id);
-            $operation->refresh();
         } else {
             $operation->wallet_after = round(self::walletBalance($card, $legalEntityId) + $amount, 2);
             $operation->card_after   = round(self::cardBalance($card) + $amount, 2);

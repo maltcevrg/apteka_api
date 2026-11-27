@@ -67,6 +67,18 @@ class CardOperation extends Model
                 $operation->card_after   = round((float) $operation->card_after, 2);
             }
         });
+
+        // Строка задним числом (не через LedgerService::append, например из фабрики/импорта):
+        // остатки более поздних строк карты пересчитываются, чтобы цепочка оставалась хронологической.
+        static::created(function (CardOperation $operation) {
+            $docDate = substr((string) $operation->document_date, 0, 10);
+            $later = static::where('card_id', $operation->card_id)
+                ->whereDate('document_date', '>', $docDate)->exists();
+            if ($later) {
+                \Solt\Bonus\Services\LedgerService::rebuildCard((int) $operation->card_id);
+                $operation->refresh();
+            }
+        });
     }
 
 
