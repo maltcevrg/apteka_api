@@ -68,9 +68,10 @@ class OfflineTest extends TestCase
         $this->postJson(route('api.bonus.increase.store'), $this->payload('100'))->assertStatus(201);
         $this->postJson(route('api.bonus.decrease.store'), $this->payload('-60'))->assertStatus(201);
 
+        // офлайн-чек без времени встаёт в начало дня: остаток после него −80, текущий баланс −40
         $this->postJson(route('api.bonus.decrease.store'), $this->payload('-80', ['offline' => 1]))
             ->assertStatus(201)
-            ->assertJson(['amount' => -80, 'amount_requested' => null, 'offline' => true, 'balance_after' => -40]);
+            ->assertJson(['amount' => -80, 'amount_requested' => null, 'offline' => true, 'balance_after' => -80, 'balance' => -40]);
 
         $this->getJson(route('api.bonus.balance.get', $this->card->short_code))->assertJson(['balance' => -40]);
         $this->assertSame([], LedgerService::checkCard($this->card->id));

@@ -208,7 +208,8 @@ class IncreaseTest extends TestCase
         $card = Card::factory()->create();
         $pharmacy = Pharmacy::factory()->create();
 
-        $card_operation = CardOperation::factory()->create();
+        // тот же документ той же аптеки уже проведён по другой карте
+        $card_operation = CardOperation::factory()->create(['pharmacy_id' => $pharmacy->id, 'document_type' => '12345678901234567890', 'action' => CardOperation::$increase_action]);
 
         $payload = [
             'short_code'        => $card->short_code,
