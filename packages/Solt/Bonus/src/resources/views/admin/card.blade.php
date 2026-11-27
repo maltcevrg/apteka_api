@@ -7,10 +7,19 @@
 <h1>Карта <code>{{ $card->short_code }}</code> @include('bonus::admin.partials.card_status', ['card' => $card])</h1>
 
 <div class="stats">
-  <div class="stat"><span class="muted">Баланс</span><b>{{ number_format($balance, 2, ',', ' ') }}</b></div>
-  @foreach ($wallets as $w)
-    <div class="stat"><span class="muted">{{ $w['legal_entity']?->inn ?? 'без юрлица' }}<br><small>{{ $w['legal_entity']?->name }}</small></span><b>{{ number_format($w['sum'], 2, ',', ' ') }}</b></div>
-  @endforeach
+  <div class="stat"><span class="muted">Баланс карты</span><b class="{{ $balance < 0 ? 'neg' : '' }}">{{ number_format($balance, 2, ',', ' ') }}</b>
+    @if (count($wallets) > 0)
+    <details style="margin-top:6px;">
+      <summary class="muted" style="font-size:13px;">по юрлицам ({{ count($wallets) }})</summary>
+      <table style="margin-top:6px; font-size:13px;">
+        @foreach ($wallets as $w)
+          <tr><td style="padding:3px 6px 3px 0; border:0;">{{ $w['legal_entity']?->inn ?? 'без юрлица' }} <span class="muted">{{ $w['legal_entity']?->name }}</span></td><td class="num {{ $w['sum'] < 0 ? 'neg' : '' }}" style="padding:3px 0; border:0;">{{ number_format($w['sum'], 2, ',', ' ') }}</td></tr>
+        @endforeach
+      </table>
+      <div class="muted" style="font-size:12px; margin-top:4px;">Из каких юрлиц сложился баланс. Клиент тратит общий баланс в любой аптеке; минус у юрлица — оно отпустило товар за бонусы, начисленные другим.</div>
+    </details>
+    @endif
+  </div>
 </div>
 
 <div class="card" style="margin-top:18px;">
